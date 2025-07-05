@@ -1,0 +1,114 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog'))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+---
+
+<BaseLayout title="Blog">
+  <div class="container">
+    <div class="blog-header">
+      <h1>Blog</h1>
+      <p class="lead">
+        Gedanken und Impulse zu Führung, Organisationsentwicklung und 
+        dem Wandel in der Arbeitswelt.
+      </p>
+    </div>
+
+    <div class="blog-grid">
+      {posts.map((post) => (
+        <article class="blog-card">
+          <div class="card-content">
+            <div class="meta">
+              <span class="category">{post.data.category}</span>
+              <time datetime={post.data.pubDate.toISOString()}>
+                {new Date(post.data.pubDate).toLocaleDateString('de-DE', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </time>
+            </div>
+            <h2>
+              <a href={`/blog/${post.slug}`}>{post.data.title}</a>
+            </h2>
+            <p>{post.data.description}</p>
+            <a href={`/blog/${post.slug}`} class="read-more">
+              Weiterlesen →
+            </a>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .blog-header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .lead {
+    font-size: 1.25rem;
+    color: var(--color-gray);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .blog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+  }
+
+  .blog-card {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .blog-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-content {
+    padding: 1.5rem;
+  }
+
+  .meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.875rem;
+    color: var(--color-gray);
+    margin-bottom: 0.5rem;
+  }
+
+  .category {
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  h2 a {
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  h2 a:hover {
+    color: var(--color-primary);
+  }
+
+  .read-more {
+    font-weight: 600;
+    color: var(--color-primary);
+  }
+</style>

@@ -1,0 +1,125 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Über mich">
+  <div class="container">
+    <div class="about-header">
+      <h1>Über mich</h1>
+      <p class="lead">
+        Passion für zeitgemäße Führung und Organisationsentwicklung
+      </p>
+    </div>
+
+    <section class="about-content">
+      <div class="text-content">
+        <h2>Hallo, ich bin Magnus!</h2>
+        
+        <p>
+          Führung ist für mich mehr als eine Position – es ist die Kunst, 
+          Menschen zu befähigen und Organisationen lebendig zu gestalten. 
+          Mit meiner Arbeit unterstütze ich Führungskräfte und Teams dabei, 
+          wirksam zu werden und dabei menschlich zu bleiben.
+        </p>
+
+        <p>
+          Mein Ansatz verbindet systemisches Denken mit praktischer Erfahrung. 
+          Ich glaube daran, dass gute Führung Klarheit schafft, Orientierung 
+          gibt und gleichzeitig Raum für Entwicklung lässt – eben "Tight Loose Tight".
+        </p>
+
+        <h3>Mein Hintergrund</h3>
+        <p>
+          Nach Jahren in verschiedenen Führungspositionen und der intensiven 
+          Auseinandersetzung mit Organisationspsychologie habe ich meine 
+          Leidenschaft zum Beruf gemacht: Menschen und Organisationen in 
+          Veränderungsprozessen zu begleiten.
+        </p>
+
+        <h3>Was mich antreibt</h3>
+        <p>
+          Ich bin überzeugt: Die Arbeitswelt kann ein Ort sein, an dem Menschen 
+          ihr Potenzial entfalten und gemeinsam Großartiges schaffen. Dafür 
+          braucht es neue Formen der Zusammenarbeit, mutige Führung und die 
+          Bereitschaft, alte Muster zu hinterfragen.
+        </p>
+
+        <h3>Lass uns ins Gespräch kommen!</h3>
+        <p>
+          Du hast Fragen, möchtest mehr über meine Arbeit erfahren oder 
+          einfach mal über Führung philosophieren? Ich freue mich auf den 
+          Austausch mit dir!
+        </p>
+      </div>
+
+      <div class="contact-box">
+        <h3>Kontakt</h3>
+        <p><strong>Magnus Maus</strong></p>
+        <p>📞 <a href="tel:+4917630722400">0176 / 307 22 400</a></p>
+        <p>✉️ <a href="mailto:magnus.maus@outlook.de">magnus.maus@outlook.de</a></p>
+      </div>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .about-header {
+    text-align: center;
+    padding: 3rem 0;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .lead {
+    font-size: 1.25rem;
+    color: var(--color-gray);
+  }
+
+  .about-content {
+    max-width: 800px;
+    margin: 3rem auto;
+  }
+
+  .text-content {
+    font-size: 1.125rem;
+    line-height: 1.8;
+  }
+
+  .text-content h2 {
+    color: var(--color-primary);
+    margin-bottom: 2rem;
+  }
+
+  .text-content h3 {
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+    color: var(--color-text);
+  }
+
+  .contact-box {
+    background: #f9fafb;
+    padding: 2rem;
+    border-radius: 0.5rem;
+    margin-top: 3rem;
+    border-left: 4px solid var(--color-primary);
+  }
+
+  .contact-box h3 {
+    margin-bottom: 1rem;
+  }
+
+  .contact-box p {
+    margin-bottom: 0.5rem;
+  }
+
+  .contact-box a {
+    color: var(--color-primary);
+    font-weight: 500;
+  }
+
+  @media (max-width: 768px) {
+    .text-content {
+      font-size: 1rem;
+    }
+  }
+</style>

@@ -1,0 +1,194 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog'))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+  .slice(0, 3);
+---
+
+<BaseLayout title="Home">
+  <section class="hero">
+    <div class="container">
+      <h1>Führung neu denken</h1>
+      <p class="lead">
+        Ich bin Magnus Maus. Ich begleite Menschen und Organisationen dabei, 
+        zeitgemäße Führung zu leben – mit Klarheit, Wirksamkeit und auf Augenhöhe.
+      </p>
+      <div class="cta-buttons">
+        <a href="/blog" class="btn btn-primary">Zum Blog</a>
+        <a href="/coaching" class="btn btn-secondary">Coaching anfragen</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="recent-posts">
+    <div class="container">
+      <h2>Aktuelle Beiträge</h2>
+      <div class="post-grid">
+        {posts.map((post) => (
+          <article class="blog-card">
+            <div class="card-content">
+              <div class="meta">
+                <span class="category">{post.data.category}</span>
+                <time datetime={post.data.pubDate.toISOString()}>
+                  {new Date(post.data.pubDate).toLocaleDateString('de-DE', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </time>
+              </div>
+              <h3>
+                <a href={`/blog/${post.slug}`}>{post.data.title}</a>
+              </h3>
+              <p>{post.data.description}</p>
+              <a href={`/blog/${post.slug}`} class="read-more">
+                Weiterlesen →
+              </a>
+            </div>
+          </article>
+        ))}
+      </div>
+      <div class="text-center">
+        <a href="/blog" class="btn btn-link">Alle Beiträge ansehen →</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 5rem 0;
+    text-align: center;
+  }
+
+  .hero h1 {
+    font-size: 3rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .lead {
+    font-size: 1.25rem;
+    max-width: 600px;
+    margin: 0 auto 2rem;
+  }
+
+  .cta-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+  }
+
+  .btn {
+    padding: 0.75rem 2rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition: transform 0.2s;
+    display: inline-block;
+  }
+
+  .btn:hover {
+    transform: translateY(-2px);
+    text-decoration: none;
+  }
+
+  .btn-primary {
+    background: white;
+    color: #667eea;
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: white;
+    border: 2px solid white;
+  }
+
+  .recent-posts {
+    padding: 5rem 0;
+  }
+
+  .recent-posts h2 {
+    text-align: center;
+    font-size: 2.5rem;
+    margin-bottom: 3rem;
+  }
+
+  .post-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+
+  .blog-card {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .blog-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-content {
+    padding: 1.5rem;
+  }
+
+  .meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.875rem;
+    color: var(--color-gray);
+    margin-bottom: 0.5rem;
+  }
+
+  .category {
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+
+  .blog-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .blog-card h3 a {
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .blog-card h3 a:hover {
+    color: var(--color-primary);
+  }
+
+  .read-more {
+    font-weight: 600;
+    color: var(--color-primary);
+  }
+
+  .text-center {
+    text-align: center;
+  }
+
+  .btn-link {
+    color: var(--color-primary);
+    font-weight: 600;
+    font-size: 1.125rem;
+  }
+
+  @media (max-width: 768px) {
+    .hero h1 {
+      font-size: 2rem;
+    }
+    
+    .cta-buttons {
+      flex-direction: column;
+      align-items: center;
+    }
+  }
+</style>

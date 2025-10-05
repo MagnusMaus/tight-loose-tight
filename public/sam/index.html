@@ -79,7 +79,6 @@
             const [input, setInput] = useState('');
             const [isLoading, setIsLoading] = useState(false);
             const [jobCards, setJobCards] = useState([]);
-            const [userProfile, setUserProfile] = useState({});
             const [isSearchingJobs, setIsSearchingJobs] = useState(false);
             const messagesEndRef = useRef(null);
             const fileInputRef = useRef(null);
@@ -117,7 +116,7 @@ In welcher beruflichen Situation befindest du dich gerade?`;
             const getSystemPrompt = () => {
                 return `Du bist Sam, ein fortschrittlicher Karriere-Coach, der Menschen dabei unterstützt, ihren idealen beruflichen nächsten Schritt zu finden.
 
-WICHTIG: Du hast Zugriff auf echte Job-Daten von Adzuna. Wenn du das Profil des Nutzers vollständig erfasst hast, sage ihm dass du jetzt passende Jobs suchen kannst und biete ihm an, auf "Jobs suchen" zu klicken.
+WICHTIG: Du hast Zugriff auf echte Job-Daten von JSearch. Wenn du das Profil des Nutzers vollständig erfasst hast, sage ihm dass du jetzt passende Jobs suchen kannst.
 
 WENN DU EINEN JOB EMPFEHLEN MÖCHTEST, formatiere ihn EXAKT so am Ende deiner Nachricht:
 
@@ -139,7 +138,7 @@ WENN DU READY BIST FÜR DIE JOB-SUCHE, schreibe am Ende deiner Nachricht:
   "location": "Berlin"
 }]
 
-Das System wird dann automatisch Adzuna aufrufen und dir echte Jobs liefern, die du analysieren kannst.
+Das System wird dann automatisch JSearch aufrufen und dir echte Jobs liefern, die du analysieren kannst.
 
 GESPRÄCHSFÜHRUNG:
 - Sei ein hilfreicher Sparringspartner und Coach, besonders bei Unsicherheiten
@@ -212,17 +211,17 @@ JOBEMPFEHLUNGEN:
 
                     const data = await response.json();
                     
-                    // Gib Sam die Job-Daten zur Analyse
-                    const jobsContext = `Hier sind ${data.results?.length || 0} echte Jobs von Adzuna für "${query}" in "${location}":
+                    // Gib Sam die Job-Daten zur Analyse (JSearch Format)
+                    const jobsContext = `Hier sind ${data.data?.length || 0} echte Jobs von JSearch für "${query}" in "${location}":
 
-${data.results?.slice(0, 5).map((job, i) => `
+${data.data?.slice(0, 5).map((job, i) => `
 Job ${i + 1}:
-- Titel: ${job.title}
-- Firma: ${job.company?.display_name || 'Unbekannt'}
-- Ort: ${job.location?.display_name || location}
-- Gehalt: ${job.salary_min && job.salary_max ? `€${job.salary_min.toLocaleString()} - €${job.salary_max.toLocaleString()}` : 'Nicht angegeben'}
-- Beschreibung: ${job.description?.substring(0, 200)}...
-- URL: ${job.redirect_url}
+- Titel: ${job.job_title}
+- Firma: ${job.employer_name || 'Unbekannt'}
+- Ort: ${job.job_city || job.job_country || location}
+- Gehalt: ${job.job_min_salary && job.job_max_salary ? `€${job.job_min_salary.toLocaleString()} - €${job.job_max_salary.toLocaleString()}` : job.job_salary_currency && job.job_salary_period ? `${job.job_salary_currency} ${job.job_salary_period}` : 'Nicht angegeben'}
+- Beschreibung: ${job.job_description?.substring(0, 300)}...
+- URL: ${job.job_apply_link}
 `).join('\n')}
 
 Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Match aus, berechne einen Fit-Score und erstelle eine JOB_CARD mit Pros/Cons.`;

@@ -9,14 +9,20 @@ exports.handler = async (event, context) => {
   try {
     const { query, location, country } = JSON.parse(event.body);
     
-    // Adzuna API-Aufruf
-    const appId = process.env.ADZUNA_APP_ID;
-    const apiKey = process.env.ADZUNA_API_KEY;
-    const countryCode = country || 'de'; // Standard: Deutschland
+    const rapidApiKey = process.env.RAPIDAPI_KEY;
     
-    const url = `https://api.adzuna.com/v1/api/jobs/${countryCode}/search/1?app_id=${appId}&app_key=${apiKey}&results_per_page=10&what=${encodeURIComponent(query)}&where=${encodeURIComponent(location)}`;
+    // JSearch API-Aufruf
+    const searchQuery = `${query} in ${location}`;
+    const url = `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(searchQuery)}&page=1&num_pages=1&date_posted=all`;
     
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'X-RapidAPI-Key': rapidApiKey,
+        'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
+      }
+    });
+    
     const data = await response.json();
     
     return {

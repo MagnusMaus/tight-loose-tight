@@ -129,8 +129,10 @@ WENN DU EINEN JOB EMPFEHLEN MÖCHTEST, formatiere ihn EXAKT so am Ende deiner Na
   "fitScore": 85,
   "pros": ["Grund 1 warum es passt", "Grund 2 warum es passt"],
   "cons": ["Aspekt der beachtet werden sollte"],
-  "applyUrl": "https://..."
+  "applyUrl": "https://example.com"
 }]
+
+WICHTIG: Die applyUrl MUSS kurz und sauber sein. Keine langen URLs mit vielen Parametern!
 
 WENN DU READY BIST FÜR DIE JOB-SUCHE, schreibe am Ende deiner Nachricht:
 [TRIGGER_SEARCH:{
@@ -196,6 +198,23 @@ JOBEMPFEHLUNGEN:
 - Bei Ablehnung: Frage nach der Begründung um das Profil zu verfeinern`;
             };
 
+            const parseJobCard = (text) => {
+                // Robusterer Regex der auch mit langen URLs klarkommt
+                const jobMatch = text.match(/\[JOB_CARD:\s*(\{[\s\S]*?\})\s*\]/);
+                if (!jobMatch) return null;
+
+                try {
+                    const jsonString = jobMatch[1].trim();
+                    const jobData = JSON.parse(jsonString);
+                    const cleanText = text.replace(/\[JOB_CARD:[\s\S]*?\]/, '').trim();
+                    return { jobData, cleanText };
+                } catch (e) {
+                    console.error('Error parsing job card:', e);
+                    console.log('Failed JSON:', jobMatch[1]);
+                    return null;
+                }
+            };
+
             const searchJobs = async (query, location) => {
                 setIsSearchingJobs(true);
                 try {
@@ -211,7 +230,6 @@ JOBEMPFEHLUNGEN:
 
                     const data = await response.json();
                     
-                    // Gib Sam die Job-Daten zur Analyse (JSearch Format)
                     const jobsContext = `Hier sind ${data.data?.length || 0} echte Jobs von JSearch für "${query}" in "${location}":
 
 ${data.data?.slice(0, 5).map((job, i) => `
@@ -221,12 +239,11 @@ Job ${i + 1}:
 - Ort: ${job.job_city || job.job_country || location}
 - Gehalt: ${job.job_min_salary && job.job_max_salary ? `€${job.job_min_salary.toLocaleString()} - €${job.job_max_salary.toLocaleString()}` : job.job_salary_currency && job.job_salary_period ? `${job.job_salary_currency} ${job.job_salary_period}` : 'Nicht angegeben'}
 - Beschreibung: ${job.job_description?.substring(0, 300)}...
-- URL: ${job.job_apply_link}
+- Bewerbungs-Link: ${job.job_apply_link}
 `).join('\n')}
 
-Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Match aus, berechne einen Fit-Score und erstelle eine JOB_CARD mit Pros/Cons.`;
+Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Match aus, berechne einen Fit-Score und erstelle eine JOB_CARD mit Pros/Cons. WICHTIG: Verwende für applyUrl eine KURZE, SAUBERE URL ohne Parameter!`;
 
-                    // Sende die Jobs an Sam zur Analyse
                     const updatedMessages = [...messages, {
                         role: 'user',
                         content: 'Ich möchte die Jobs sehen!'
@@ -247,18 +264,10 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                     const samData = await samResponse.json();
                     const assistantMessage = samData.content[0].text;
 
-                    // Parse Job-Card
-                    const jobMatch = assistantMessage.match(/\[JOB_CARD:(.+?)\]/s);
-                    if (jobMatch) {
-                        try {
-                            const jobData = JSON.parse(jobMatch[1]);
-                            setJobCards(prev => [...prev, { ...jobData, id: Date.now() }]);
-                            const cleanMessage = assistantMessage.replace(/\[JOB_CARD:.+?\]/s, '').trim();
-                            setMessages([...messages, { role: 'assistant', content: cleanMessage }]);
-                        } catch (e) {
-                            console.error('Error parsing job card:', e);
-                            setMessages([...messages, { role: 'assistant', content: assistantMessage }]);
-                        }
+                    const parsed = parseJobCard(assistantMessage);
+                    if (parsed) {
+                        setJobCards(prev => [...prev, { ...parsed.jobData, id: Date.now() }]);
+                        setMessages([...messages, { role: 'assistant', content: parsed.cleanText }]);
                     } else {
                         setMessages([...messages, { role: 'assistant', content: assistantMessage }]);
                     }
@@ -267,7 +276,7 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                     console.error('Job search error:', error);
                     setMessages([...messages, {
                         role: 'assistant',
-                        content: 'Es gab leider ein Problem bei der Job-Suche. Lass uns es nochmal versuchen! 🔧'
+                        content: 'Es gab leider ein Problem bei der Job-Suche. Lass uns es nochmal versuchen!'
                     }]);
                 } finally {
                     setIsSearchingJobs(false);
@@ -303,14 +312,13 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                     const assistantMessage = data.content[0].text;
 
                     // Check for search trigger
-                    const searchTrigger = assistantMessage.match(/\[TRIGGER_SEARCH:(.+?)\]/s);
+                    const searchTrigger = assistantMessage.match(/\[TRIGGER_SEARCH:\s*(\{[\s\S]*?\})\s*\]/);
                     if (searchTrigger) {
                         try {
                             const searchParams = JSON.parse(searchTrigger[1]);
-                            const cleanMessage = assistantMessage.replace(/\[TRIGGER_SEARCH:.+?\]/s, '').trim();
+                            const cleanMessage = assistantMessage.replace(/\[TRIGGER_SEARCH:[\s\S]*?\]/, '').trim();
                             setMessages([...updatedMessages, { role: 'assistant', content: cleanMessage }]);
                             
-                            // Trigger automatic search
                             await searchJobs(searchParams.query, searchParams.location);
                             return;
                         } catch (e) {
@@ -319,18 +327,10 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                     }
 
                     // Check for job card
-                    const jobMatch = assistantMessage.match(/\[JOB_CARD:(.+?)\]/s);
-                    if (jobMatch) {
-                        try {
-                            const jobData = JSON.parse(jobMatch[1]);
-                            setJobCards(prev => [...prev, { ...jobData, id: Date.now() }]);
-                            
-                            const cleanMessage = assistantMessage.replace(/\[JOB_CARD:.+?\]/s, '').trim();
-                            setMessages([...updatedMessages, { role: 'assistant', content: cleanMessage }]);
-                        } catch (e) {
-                            console.error('Error parsing job card:', e);
-                            setMessages([...updatedMessages, { role: 'assistant', content: assistantMessage }]);
-                        }
+                    const parsed = parseJobCard(assistantMessage);
+                    if (parsed) {
+                        setJobCards(prev => [...prev, { ...parsed.jobData, id: Date.now() }]);
+                        setMessages([...updatedMessages, { role: 'assistant', content: parsed.cleanText }]);
                     } else {
                         setMessages([...updatedMessages, { role: 'assistant', content: assistantMessage }]);
                     }
@@ -338,7 +338,7 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                     console.error('Error:', error);
                     setMessages([...updatedMessages, { 
                         role: 'assistant', 
-                        content: 'Entschuldigung, es gab einen technischen Fehler. Bitte versuche es nochmal. 🔧' 
+                        content: 'Entschuldigung, es gab einen technischen Fehler. Bitte versuche es nochmal.' 
                     }]);
                 } finally {
                     setIsLoading(false);
@@ -396,16 +396,10 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                     const data = await response.json();
                     const assistantMessage = data.content[0].text;
                     
-                    const jobMatch = assistantMessage.match(/\[JOB_CARD:(.+?)\]/s);
-                    if (jobMatch) {
-                        try {
-                            const jobData = JSON.parse(jobMatch[1]);
-                            setJobCards(prev => [...prev, { ...jobData, id: Date.now() }]);
-                            const cleanMessage = assistantMessage.replace(/\[JOB_CARD:.+?\]/s, '').trim();
-                            setMessages([...updatedMessages, { role: 'assistant', content: cleanMessage }]);
-                        } catch (e) {
-                            setMessages([...updatedMessages, { role: 'assistant', content: assistantMessage }]);
-                        }
+                    const parsed = parseJobCard(assistantMessage);
+                    if (parsed) {
+                        setJobCards(prev => [...prev, { ...parsed.jobData, id: Date.now() }]);
+                        setMessages([...updatedMessages, { role: 'assistant', content: parsed.cleanText }]);
                     } else {
                         setMessages([...updatedMessages, { role: 'assistant', content: assistantMessage }]);
                     }

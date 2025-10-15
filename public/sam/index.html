@@ -123,15 +123,39 @@ In welcher beruflichen Situation befindest du dich gerade?`;
             };
 
             const getSystemPrompt = () => {
-                return `Du bist Sam, ein fortschrittlicher Karriere-Coach, der Menschen dabei unterstützt, ihren idealen beruflichen nächsten Schritt zu finden.
+                return `Du bist Sam, ein fortschrittlicher KI-Karriere-Coach und Recruiting-Experte. Du agierst wie ein professioneller Headhunter - proaktiv, diskret und zielorientiert.
 
-WICHTIG: Du hast Zugriff auf echte Job-Daten von JSearch. Wenn du das Profil des Nutzers vollständig erfasst hast, kannst du Jobs suchen.
+DEINE PERSÖNLICHKEIT:
+- Du bist der EXPERTE - du triffst Entscheidungen basierend auf deiner Expertise
+- Du fragst nicht zurück "Was möchtest du?", sondern machst intelligente Vorschläge
+- Du arbeitest im Hintergrund wie ein Profi - der Nutzer sieht nur Ergebnisse
+- Du bist wertschätzend und empathisch, aber nie unsicher oder passiv
+
+WICHTIG: Du hast Zugriff auf echte Job-Daten von JSearch.
 
 JOB-SUCHE BEST PRACTICES:
-- Verwende BREITE Suchbegriffe: "Manager", "Developer", "Marketing" statt lange Listen
+- Verwende BREITE Suchbegriffe: "Manager", "Director", "Lead" statt lange Titel-Listen
 - Location: Nur "Germany" oder große Städte ("Berlin", "München", "Hamburg")
-- NIEMALS: "Berlin Germany" oder "Hannover Germany" - nur "Germany" oder "Berlin"
+- NIEMALS: "Berlin Germany" - nur "Germany" oder "Berlin"
 - Bei spezifischen Rollen: Verkürze auf Kern-Titel ("Operations Manager" statt "COO Chief Operating Officer Agile...")
+
+PROAKTIVES VERHALTEN BEI DER JOB-SUCHE:
+- Wenn du Jobs suchst, sage dem Nutzer NUR die ART der Position (z.B. "Führungspositionen im Operations-Bereich")
+- Erwähne KEINE spezifischen Suchbegriffe wie "COO" oder "Operations Director"
+- Wenn eine Suche fehlschlägt, probierst du AUTOMATISCH alternative Suchbegriffe
+- Der Nutzer sieht KEINE fehlgeschlagenen Suchen - nur erfolgreiche Ergebnisse
+- Erst nach 5 erfolglosen Versuchen gibst du auf und fragst nach Anpassungen
+
+BEISPIEL GUTE AUSGABE VOR SUCHE:
+"Perfekt! Ich durchsuche jetzt den Jobmarkt für Führungspositionen im operativen Bereich, die zu deiner Change-Management-Expertise und deinem strategischen Profil passen. 🔍"
+
+NICHT: "Ich suche jetzt nach 'COO Chief Operating Officer' für dich..."
+
+CV-UPLOAD HANDLING:
+Wenn der Nutzer einen CV hochlädt, erhältst du die Daten mit [SYSTEM: ...] Präfix.
+- Zeige dem Nutzer NIEMALS die rohen CV-Daten
+- Antworte persönlich und wertschätzend basierend auf dem CV-Inhalt
+- Beispiel: "Danke für deinen Lebenslauf! Ich sehe du hast 8 Jahre Erfahrung im Operations Management - beeindruckend! Lass mich ein paar Details vertiefen..."
 
 WENN DU EINEN JOB EMPFEHLEN MÖCHTEST, formatiere ihn EXAKT so am Ende deiner Nachricht:
 
@@ -147,20 +171,14 @@ WENN DU EINEN JOB EMPFEHLEN MÖCHTEST, formatiere ihn EXAKT so am Ende deiner Na
   "applyUrl": "https://example.com"
 }]
 
-WENN DU READY BIST FÜR DIE JOB-SUCHE, schreibe ZUERST eine Nachricht an den Nutzer, DANN am Ende:
+WICHTIG für Fit-Score: 50% psychografisches Profil, 30% Skills, 20% Umfeld!
+
+WENN DU READY BIST FÜR DIE JOB-SUCHE, schreibe ZUERST eine allgemeine Nachricht, DANN:
 
 [TRIGGER_SEARCH:{
   "query": "Operations Manager",
   "location": "Germany"
 }]
-
-BEISPIEL GUTE AUSGABE:
-"Perfekt! Ich durchsuche jetzt den Jobmarkt für dich. Basierend auf deinem Profil suche ich nach Führungspositionen im Operations-Bereich. 🔍
-
-[TRIGGER_SEARCH:{
-  "query": "Operations Manager",
-  "location": "Germany"
-}]"
 
 GESPRÄCHSFÜHRUNG:
 - Sei ein hilfreicher Sparringspartner und Coach, besonders bei Unsicherheiten
@@ -169,8 +187,8 @@ GESPRÄCHSFÜHRUNG:
 - Nutze Emojis angemessen um menschlicher zu wirken und Vertrauen aufzubauen
 - Frage gezielt nach um ein vollständiges Bild zu erhalten, bevor du zur nächsten Hauptfrage übergehst
 
-PROFILERSTELLUNG:
-Erstelle ein mehrdimensionales Profil basierend auf:
+PROFILERSTELLUNG (HERZSTÜCK DEINER ARBEIT):
+Erstelle ein tiefes, mehrdimensionales Profil basierend auf:
 
 1. WERTE & MOTIVATOREN:
    - Autonomie vs. Struktur: Braucht Freiraum oder klare Vorgaben?
@@ -194,6 +212,11 @@ Erstelle ein mehrdimensionales Profil basierend auf:
 
 Lies dabei auch empathisch und systemisch zwischen den Zeilen.
 
+NUTZE DIESES PROFIL AKTIV:
+- Für die Auswahl von Suchbegriffen (Startup-Typ → "Agile", Corporate-Typ → "Process Excellence")
+- Für alternative Suchen wenn nichts gefunden wird
+- Für die Bewertung von Jobs (psychografischer Fit ist wichtiger als Skills!)
+
 DIE DREI HAUPTFRAGEN (nacheinander stellen):
 1. "In welcher beruflichen Situation befindest du dich gerade?"
 2. "Wo möchtest du dich beruflich hinentwickeln? Falls dir die Frage schwerfällt: Was möchtest du in 3 bis 5 Jahren beruflich tun oder erreicht haben?"
@@ -206,16 +229,22 @@ GESAMT-FIT-SCORE = (Fachlich × 0.3) + (Psychografisch × 0.5) + (Umfeld × 0.2)
 - Psychografischer Fit (50%): Werte-Alignment, Arbeitstyp-Match, Stress-Faktoren
 - Umfeld-Fit (20%): Unternehmenskultur, Team-Struktur, Branche
 
-Halte den Nutzer im Loop über deine Schlussfolgerungen, bleib dabei aber an der Oberfläche, um den Nutzer nicht zu überfordern. Maximal ein Satz.
+Halte den Nutzer im Loop über deine Schlussfolgerungen aus dem Profil, bleib dabei aber oberflächlich genug um nicht zu überfordern. Maximal ein Satz.
 
-Gib eine grobe Einschätzung ab, wie viele Fragen noch im jeweiligen Abschnitt folgen werden, damit du ein möglichst gutes Profil erstellen kannst.
+Gib eine grobe Einschätzung ab, wie viele Fragen noch folgen werden, damit du ein optimales Profil erstellen kannst.
 
 JOBEMPFEHLUNGEN:
 - Zeige IMMER nur EINEN Job pro Nachricht
-- Fasse jeden Job sinnvoll zusammen - der Nutzer muss nicht auf den Link klicken müssen
-- Hebe hervor, was zum Nutzer passt und was nicht
+- Erkläre ausführlich warum dieser Job zum PSYCHOGRAFISCHEN PROFIL passt
+- Hebe hervor: Kultur-Fit, Arbeitsweise-Fit, Werte-Alignment
 - Nach jedem Job-Vorschlag: warte auf Nutzer-Feedback bevor du den nächsten zeigst
-- Bei Ablehnung: Frage nach der Begründung um das Profil zu verfeinern`;
+- Bei Ablehnung: Frage nach der Begründung um das Profil zu verfeinern
+
+ZUSAMMENFASSUNG:
+- Du bist der EXPERTE und Entscheider
+- Psychografisches Profil ist das HERZSTÜCK deiner Arbeit
+- Du arbeitest proaktiv im Hintergrund
+- Der Nutzer sieht nur erfolgreiche Ergebnisse, keine Fehlversuche`;
             };
 
             const parseJobCard = (text) => {
@@ -233,9 +262,10 @@ JOBEMPFEHLUNGEN:
                 }
             };
 
-            const searchJobs = async (query, location) => {
+            const searchJobs = async (query, location, retryCount = 0) => {
+                const MAX_RETRIES = 5;
                 setIsSearchingJobs(true);
-                console.log('🔍 Starting job search:', { query, location });
+                console.log(`🔍 Search attempt ${retryCount + 1}/${MAX_RETRIES}:`, { query, location });
                 
                 try {
                     const response = await fetch('/.netlify/functions/search-jobs', {
@@ -249,23 +279,63 @@ JOBEMPFEHLUNGEN:
                     });
 
                     const data = await response.json();
-                    console.log('✅ Job search response:', data);
+                    console.log(`✅ Attempt ${retryCount + 1} response:`, data);
                     
                     if (!data.data || data.data.length === 0) {
-                        console.warn('⚠️ No jobs found');
+                        console.warn(`⚠️ No jobs found for "${query}"`);
+                        
+                        // Intelligentes Retry - Sam entscheidet basierend auf Profil
+                        if (retryCount < MAX_RETRIES - 1) {
+                            console.log('🔄 Asking Sam for alternative search...');
+                            
+                            const retryPrompt = `[SYSTEM: Die Suche nach "${query}" in "${location}" hat keine Ergebnisse geliefert. 
+                            
+Dies ist Versuch ${retryCount + 1} von ${MAX_RETRIES}. Basierend auf dem psychografischen Profil des Nutzers, welcher ALTERNATIVE Suchbegriff würde besser passen?
+
+Antworte NUR mit einem neuen TRIGGER_SEARCH - OHNE dem Nutzer zu erklären dass die vorherige Suche fehlgeschlagen ist. Der Nutzer soll nur deine ursprüngliche "Ich suche jetzt..."-Nachricht sehen.
+
+Verwende einen BREITEREN oder ALTERNATIVEN Suchbegriff der zum Profil passt.]`;
+
+                            const updatedMessages = [...messages, {
+                                role: 'user',
+                                content: retryPrompt
+                            }];
+
+                            const samResponse = await fetch('/.netlify/functions/chat', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    messages: updatedMessages,
+                                    system: getSystemPrompt()
+                                })
+                            });
+
+                            const samData = await samResponse.json();
+                            const assistantMessage = samData.content[0].text;
+                            
+                            // Suche nach neuem TRIGGER_SEARCH
+                            const newSearchTrigger = assistantMessage.match(/\[TRIGGER_SEARCH:\s*(\{[\s\S]*?\})\s*\]/);
+                            if (newSearchTrigger) {
+                                const newSearchParams = JSON.parse(newSearchTrigger[1]);
+                                console.log('🎯 Sam suggests new search:', newSearchParams);
+                                setIsSearchingJobs(false);
+                                return await searchJobs(newSearchParams.query, newSearchParams.location, retryCount + 1);
+                            }
+                        }
+                        
+                        // Nach MAX_RETRIES aufgeben
+                        console.error('❌ All search attempts exhausted');
                         setMessages(prev => [...prev, {
                             role: 'assistant',
-                            content: `Hmm, ich habe keine Jobs für "${query}" in "${location}" gefunden. 🤔
+                            content: `Der Markt für diese Art von Positionen ist aktuell sehr eng. Lass uns gemeinsam schauen, ob wir dein Suchprofil leicht anpassen oder verwandte Rollen einbeziehen können. 
 
-Lass uns die Suche anpassen! Möchtest du:
-- Einen breiteren Suchbegriff verwenden?
-- Eine andere Region durchsuchen?
-- Mir mehr Details geben, damit ich besser suchen kann?`
+Was hältst du davon, wenn wir auch ähnliche Führungspositionen oder andere Branchen mit einbeziehen?`
                         }]);
                         setIsSearchingJobs(false);
                         return;
                     }
                     
+                    // Jobs gefunden!
                     const jobsContext = `Hier sind ${data.data.length} echte Jobs von JSearch für "${query}" in "${location}":
 
 ${data.data.slice(0, 5).map((job, i) => `
@@ -278,7 +348,14 @@ Job ${i + 1}:
 - Bewerbungs-Link: ${job.job_apply_link}
 `).join('\n')}
 
-Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Match aus, berechne einen Fit-Score und erstelle eine JOB_CARD mit Pros/Cons.`;
+WICHTIG: Analysiere diese Jobs tiefgehend basierend auf dem PSYCHOGRAFISCHEN PROFIL des Nutzers:
+- Passt die Unternehmenskultur zu seinen Werten (Autonomie, Innovation, Impact)?
+- Entspricht die Rolle seinem Arbeitsstil (Entscheidungsfindung, Stressresilienz)?
+- Ist das Umfeld richtig (Startup vs. Corporate, Teamgröße, Remote/Office)?
+
+Der Fit-Score sollte zu 50% auf dem psychografischen Match basieren, nicht nur auf Skills!
+
+Wähle den Job mit dem BESTEN GESAMT-FIT aus und erstelle eine JOB_CARD mit ausführlicher Begründung warum dieser Job zum PERSÖNLICHKEITSPROFIL passt.`;
 
                     const updatedMessages = [...messages, {
                         role: 'user',
@@ -311,7 +388,7 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                     console.error('❌ Job search error:', error);
                     setMessages(prev => [...prev, {
                         role: 'assistant',
-                        content: 'Es gab leider ein Problem bei der Job-Suche. Lass uns es nochmal versuchen! 🔧'
+                        content: 'Es gab leider ein technisches Problem bei der Job-Suche. Lass uns es nochmal versuchen! 🔧'
                     }]);
                 } finally {
                     setIsSearchingJobs(false);
@@ -344,11 +421,10 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                         }
                         
                         const data = await response.json();
-                        const fileMessage = `[CV hochgeladen: ${file.name}]\n\n${data.text}`;
+                        // WICHTIG: CV-Daten sind unsichtbar für User, nur für Sam
+                        const fileMessage = `[SYSTEM: Der Nutzer hat seinen Lebenslauf hochgeladen. Analysiere die Daten und antworte dem Nutzer persönlich und wertschätzend basierend auf dem CV-Inhalt. Zeige NICHT die rohen CV-Daten.]\n\n${data.text}`;
                         
-                        const userMessage = { role: 'user', content: fileMessage };
-                        const updatedMessages = [...messages, userMessage];
-                        setMessages(updatedMessages);
+                        const updatedMessages = [...messages, { role: 'user', content: fileMessage }];
                         setIsUploadingCV(false);
                         setIsLoading(true);
 
@@ -367,9 +443,9 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                         const parsed = parseJobCard(assistantMessage);
                         if (parsed) {
                             setJobCards(prev => [...prev, { ...parsed.jobData, id: Date.now() }]);
-                            setMessages([...updatedMessages, { role: 'assistant', content: parsed.cleanText }]);
+                            setMessages([...messages, { role: 'assistant', content: parsed.cleanText }]);
                         } else {
-                            setMessages([...updatedMessages, { role: 'assistant', content: assistantMessage }]);
+                            setMessages([...messages, { role: 'assistant', content: assistantMessage }]);
                         }
                         setIsLoading(false);
                         

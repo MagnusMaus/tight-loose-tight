@@ -125,7 +125,13 @@ In welcher beruflichen Situation befindest du dich gerade?`;
             const getSystemPrompt = () => {
                 return `Du bist Sam, ein fortschrittlicher Karriere-Coach, der Menschen dabei unterstützt, ihren idealen beruflichen nächsten Schritt zu finden.
 
-WICHTIG: Du hast Zugriff auf echte Job-Daten von JSearch. Wenn du das Profil des Nutzers vollständig erfasst hast, sage ihm dass du jetzt passende Jobs suchen kannst.
+WICHTIG: Du hast Zugriff auf echte Job-Daten von JSearch. Wenn du das Profil des Nutzers vollständig erfasst hast, kannst du Jobs suchen.
+
+JOB-SUCHE BEST PRACTICES:
+- Verwende BREITE Suchbegriffe: "Manager", "Developer", "Marketing" statt lange Listen
+- Location: Nur "Germany" oder große Städte ("Berlin", "München", "Hamburg")
+- NIEMALS: "Berlin Germany" oder "Hannover Germany" - nur "Germany" oder "Berlin"
+- Bei spezifischen Rollen: Verkürze auf Kern-Titel ("Operations Manager" statt "COO Chief Operating Officer Agile...")
 
 WENN DU EINEN JOB EMPFEHLEN MÖCHTEST, formatiere ihn EXAKT so am Ende deiner Nachricht:
 
@@ -141,15 +147,20 @@ WENN DU EINEN JOB EMPFEHLEN MÖCHTEST, formatiere ihn EXAKT so am Ende deiner Na
   "applyUrl": "https://example.com"
 }]
 
-WICHTIG: Die applyUrl MUSS kurz und sauber sein. Keine langen URLs mit vielen Parametern!
+WENN DU READY BIST FÜR DIE JOB-SUCHE, schreibe ZUERST eine Nachricht an den Nutzer, DANN am Ende:
 
-WENN DU READY BIST FÜR DIE JOB-SUCHE, schreibe am Ende deiner Nachricht:
 [TRIGGER_SEARCH:{
-  "query": "Projektmanager Software",
-  "location": "Berlin"
+  "query": "Operations Manager",
+  "location": "Germany"
 }]
 
-Das System wird dann automatisch JSearch aufrufen und dir echte Jobs liefern, die du analysieren kannst.
+BEISPIEL GUTE AUSGABE:
+"Perfekt! Ich durchsuche jetzt den Jobmarkt für dich. Basierend auf deinem Profil suche ich nach Führungspositionen im Operations-Bereich. 🔍
+
+[TRIGGER_SEARCH:{
+  "query": "Operations Manager",
+  "location": "Germany"
+}]"
 
 GESPRÄCHSFÜHRUNG:
 - Sei ein hilfreicher Sparringspartner und Coach, besonders bei Unsicherheiten
@@ -224,6 +235,8 @@ JOBEMPFEHLUNGEN:
 
             const searchJobs = async (query, location) => {
                 setIsSearchingJobs(true);
+                console.log('🔍 Starting job search:', { query, location });
+                
                 try {
                     const response = await fetch('/.netlify/functions/search-jobs', {
                         method: 'POST',
@@ -236,10 +249,26 @@ JOBEMPFEHLUNGEN:
                     });
 
                     const data = await response.json();
+                    console.log('✅ Job search response:', data);
                     
-                    const jobsContext = `Hier sind ${data.data?.length || 0} echte Jobs von JSearch für "${query}" in "${location}":
+                    if (!data.data || data.data.length === 0) {
+                        console.warn('⚠️ No jobs found');
+                        setMessages(prev => [...prev, {
+                            role: 'assistant',
+                            content: `Hmm, ich habe keine Jobs für "${query}" in "${location}" gefunden. 🤔
 
-${data.data?.slice(0, 5).map((job, i) => `
+Lass uns die Suche anpassen! Möchtest du:
+- Einen breiteren Suchbegriff verwenden?
+- Eine andere Region durchsuchen?
+- Mir mehr Details geben, damit ich besser suchen kann?`
+                        }]);
+                        setIsSearchingJobs(false);
+                        return;
+                    }
+                    
+                    const jobsContext = `Hier sind ${data.data.length} echte Jobs von JSearch für "${query}" in "${location}":
+
+${data.data.slice(0, 5).map((job, i) => `
 Job ${i + 1}:
 - Titel: ${job.job_title}
 - Firma: ${job.employer_name || 'Unbekannt'}
@@ -249,12 +278,9 @@ Job ${i + 1}:
 - Bewerbungs-Link: ${job.job_apply_link}
 `).join('\n')}
 
-Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Match aus, berechne einen Fit-Score und erstelle eine JOB_CARD mit Pros/Cons. WICHTIG: Verwende für applyUrl eine KURZE, SAUBERE URL ohne Parameter!`;
+Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Match aus, berechne einen Fit-Score und erstelle eine JOB_CARD mit Pros/Cons.`;
 
                     const updatedMessages = [...messages, {
-                        role: 'user',
-                        content: 'Ich möchte die Jobs sehen!'
-                    }, {
                         role: 'user',
                         content: jobsContext
                     }];
@@ -274,16 +300,18 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                     const parsed = parseJobCard(assistantMessage);
                     if (parsed) {
                         setJobCards(prev => [...prev, { ...parsed.jobData, id: Date.now() }]);
-                        setMessages([...messages, { role: 'assistant', content: parsed.cleanText }]);
+                        if (parsed.cleanText) {
+                            setMessages(prev => [...prev, { role: 'assistant', content: parsed.cleanText }]);
+                        }
                     } else {
-                        setMessages([...messages, { role: 'assistant', content: assistantMessage }]);
+                        setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
                     }
 
                 } catch (error) {
-                    console.error('Job search error:', error);
-                    setMessages([...messages, {
+                    console.error('❌ Job search error:', error);
+                    setMessages(prev => [...prev, {
                         role: 'assistant',
-                        content: 'Es gab leider ein Problem bei der Job-Suche. Lass uns es nochmal versuchen!'
+                        content: 'Es gab leider ein Problem bei der Job-Suche. Lass uns es nochmal versuchen! 🔧'
                     }]);
                 } finally {
                     setIsSearchingJobs(false);
@@ -318,14 +346,12 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                         const data = await response.json();
                         const fileMessage = `[CV hochgeladen: ${file.name}]\n\n${data.text}`;
                         
-                        // Automatisch senden statt nur ins Textfeld einfügen
                         const userMessage = { role: 'user', content: fileMessage };
                         const updatedMessages = [...messages, userMessage];
                         setMessages(updatedMessages);
                         setIsUploadingCV(false);
                         setIsLoading(true);
 
-                        // An Sam schicken
                         const samResponse = await fetch('/.netlify/functions/chat', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -393,8 +419,13 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                         try {
                             const searchParams = JSON.parse(searchTrigger[1]);
                             const cleanMessage = assistantMessage.replace(/\[TRIGGER_SEARCH:[\s\S]*?\]/, '').trim();
-                            setMessages([...updatedMessages, { role: 'assistant', content: cleanMessage }]);
                             
+                            // WICHTIG: Zeige Sam's Text VOR der Suche
+                            if (cleanMessage) {
+                                setMessages([...updatedMessages, { role: 'assistant', content: cleanMessage }]);
+                            }
+                            
+                            setIsLoading(false); // Loading beenden
                             await searchJobs(searchParams.query, searchParams.location);
                             return;
                         } catch (e) {

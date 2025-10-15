@@ -74,12 +74,21 @@
             </svg>
         );
 
+        const UploadIcon = () => (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+        );
+
         const SamCareerCoach = () => {
             const [messages, setMessages] = useState([]);
             const [input, setInput] = useState('');
             const [isLoading, setIsLoading] = useState(false);
             const [jobCards, setJobCards] = useState([]);
             const [isSearchingJobs, setIsSearchingJobs] = useState(false);
+            const [isUploadingCV, setIsUploadingCV] = useState(false);
             const messagesEndRef = useRef(null);
             const fileInputRef = useRef(null);
 
@@ -199,7 +208,6 @@ JOBEMPFEHLUNGEN:
             };
 
             const parseJobCard = (text) => {
-                // Robusterer Regex der auch mit langen URLs klarkommt
                 const jobMatch = text.match(/\[JOB_CARD:\s*(\{[\s\S]*?\})\s*\]/);
                 if (!jobMatch) return null;
 
@@ -210,7 +218,6 @@ JOBEMPFEHLUNGEN:
                     return { jobData, cleanText };
                 } catch (e) {
                     console.error('Error parsing job card:', e);
-                    console.log('Failed JSON:', jobMatch[1]);
                     return null;
                 }
             };
@@ -283,6 +290,44 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                 }
             };
 
+            const handleFileUpload = async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+
+                setIsUploadingCV(true);
+                
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const base64Data = e.target.result.split(',')[1];
+                        
+                        const response = await fetch('/.netlify/functions/parse-cv', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                fileData: base64Data,
+                                fileName: file.name,
+                                fileType: file.type
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error('Upload fehlgeschlagen');
+                        }
+                        
+                        const data = await response.json();
+                        const fileMessage = `[CV hochgeladen: ${file.name}]\n\n${data.text}`;
+                        setInput(fileMessage);
+                    } catch (error) {
+                        console.error('File upload error:', error);
+                        alert('Fehler beim Hochladen der Datei. Bitte versuche es nochmal oder beschreibe deinen Lebenslauf im Chat.');
+                    } finally {
+                        setIsUploadingCV(false);
+                    }
+                };
+                reader.readAsDataURL(file);
+            };
+
             const handleSend = async () => {
                 if (!input.trim() || isLoading) return;
 
@@ -311,7 +356,6 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                     const data = await response.json();
                     const assistantMessage = data.content[0].text;
 
-                    // Check for search trigger
                     const searchTrigger = assistantMessage.match(/\[TRIGGER_SEARCH:\s*(\{[\s\S]*?\})\s*\]/);
                     if (searchTrigger) {
                         try {
@@ -326,7 +370,6 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                         }
                     }
 
-                    // Check for job card
                     const parsed = parseJobCard(assistantMessage);
                     if (parsed) {
                         setJobCards(prev => [...prev, { ...parsed.jobData, id: Date.now() }]);
@@ -343,19 +386,6 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                 } finally {
                     setIsLoading(false);
                 }
-            };
-
-            const handleFileUpload = async (event) => {
-                const file = event.target.files?.[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    const content = e.target.result;
-                    const fileMessage = `[CV hochgeladen: ${file.name}]\n\n${content.substring(0, 5000)}`;
-                    setInput(fileMessage);
-                };
-                reader.readAsText(file);
             };
 
             const handleJobAction = async (jobId, action) => {
@@ -644,7 +674,7 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                             </div>
                         ))}
 
-                        {(isLoading || isSearchingJobs) && (
+                        {(isLoading || isSearchingJobs || isUploadingCV) && (
                             <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
                                 <div style={{
                                     padding: '12px 16px',
@@ -660,6 +690,13 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                                             <SearchIcon />
                                             <span style={{ fontSize: '14px', color: '#6b7280' }}>
                                                 Suche passende Jobs...
+                                            </span>
+                                        </>
+                                    ) : isUploadingCV ? (
+                                        <>
+                                            <UploadIcon />
+                                            <span style={{ fontSize: '14px', color: '#6b7280' }}>
+                                                Verarbeite deinen Lebenslauf...
                                             </span>
                                         </>
                                     ) : (
@@ -687,22 +724,24 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                                 type="file"
                                 ref={fileInputRef}
                                 onChange={handleFileUpload}
-                                accept=".txt,.pdf,.doc,.docx"
+                                accept=".txt,.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                                 style={{ display: 'none' }}
                             />
                             
                             <button
                                 onClick={() => fileInputRef.current?.click()}
-                                disabled={isLoading || isSearchingJobs}
+                                disabled={isLoading || isSearchingJobs || isUploadingCV}
+                                title="Lebenslauf hochladen (PDF, Word, TXT)"
                                 style={{
                                     padding: '12px',
                                     backgroundColor: '#f3f4f6',
                                     border: '1px solid #d1d5db',
                                     borderRadius: '8px',
-                                    cursor: (isLoading || isSearchingJobs) ? 'not-allowed' : 'pointer',
+                                    cursor: (isLoading || isSearchingJobs || isUploadingCV) ? 'not-allowed' : 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center'
+                                    justifyContent: 'center',
+                                    opacity: (isLoading || isSearchingJobs || isUploadingCV) ? 0.5 : 1
                                 }}
                             >
                                 <FileUpIcon />
@@ -718,7 +757,7 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                                     }
                                 }}
                                 placeholder="Schreibe deine Antwort..."
-                                disabled={isLoading || isSearchingJobs}
+                                disabled={isLoading || isSearchingJobs || isUploadingCV}
                                 style={{
                                     flex: 1,
                                     padding: '12px 16px',
@@ -736,16 +775,16 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
 
                             <button
                                 onClick={handleSend}
-                                disabled={!input.trim() || isLoading || isSearchingJobs}
+                                disabled={!input.trim() || isLoading || isSearchingJobs || isUploadingCV}
                                 style={{
                                     padding: '12px 24px',
-                                    backgroundColor: (input.trim() && !isLoading && !isSearchingJobs) ? '#2563eb' : '#d1d5db',
+                                    backgroundColor: (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) ? '#2563eb' : '#d1d5db',
                                     color: 'white',
                                     border: 'none',
                                     borderRadius: '8px',
                                     fontSize: '15px',
                                     fontWeight: '600',
-                                    cursor: (input.trim() && !isLoading && !isSearchingJobs) ? 'pointer' : 'not-allowed',
+                                    cursor: (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) ? 'pointer' : 'not-allowed',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '8px'
@@ -754,6 +793,23 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                                 <SendIcon />
                                 Senden
                             </button>
+                        </div>
+                        
+                        <div style={{ 
+                            marginTop: '12px', 
+                            textAlign: 'center', 
+                            fontSize: '12px', 
+                            color: '#6b7280' 
+                        }}>
+                            <a href="/datenschutz" target="_blank" style={{ color: '#2563eb', textDecoration: 'none' }}>
+                                Datenschutz
+                            </a>
+                            {' · '}
+                            <a href="/agb" target="_blank" style={{ color: '#2563eb', textDecoration: 'none' }}>
+                                AGB
+                            </a>
+                            {' · '}
+                            Powered by Claude
                         </div>
                     </div>
                 </div>

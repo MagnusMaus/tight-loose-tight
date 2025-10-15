@@ -317,12 +317,44 @@ Analysiere diese Jobs basierend auf dem Profil des Nutzers. Wähle den BESTEN Ma
                         
                         const data = await response.json();
                         const fileMessage = `[CV hochgeladen: ${file.name}]\n\n${data.text}`;
-                        setInput(fileMessage);
+                        
+                        // Automatisch senden statt nur ins Textfeld einfügen
+                        const userMessage = { role: 'user', content: fileMessage };
+                        const updatedMessages = [...messages, userMessage];
+                        setMessages(updatedMessages);
+                        setIsUploadingCV(false);
+                        setIsLoading(true);
+
+                        // An Sam schicken
+                        const samResponse = await fetch('/.netlify/functions/chat', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                messages: updatedMessages,
+                                system: getSystemPrompt()
+                            })
+                        });
+
+                        const samData = await samResponse.json();
+                        const assistantMessage = samData.content[0].text;
+
+                        const parsed = parseJobCard(assistantMessage);
+                        if (parsed) {
+                            setJobCards(prev => [...prev, { ...parsed.jobData, id: Date.now() }]);
+                            setMessages([...updatedMessages, { role: 'assistant', content: parsed.cleanText }]);
+                        } else {
+                            setMessages([...updatedMessages, { role: 'assistant', content: assistantMessage }]);
+                        }
+                        setIsLoading(false);
+                        
                     } catch (error) {
                         console.error('File upload error:', error);
-                        alert('Fehler beim Hochladen der Datei. Bitte versuche es nochmal oder beschreibe deinen Lebenslauf im Chat.');
-                    } finally {
+                        setMessages([...messages, {
+                            role: 'assistant',
+                            content: 'Fehler beim Verarbeiten deines Lebenslaufs. Bitte versuche es nochmal oder beschreibe deine Erfahrungen im Chat. 🔧'
+                        }]);
                         setIsUploadingCV(false);
+                        setIsLoading(false);
                     }
                 };
                 reader.readAsDataURL(file);

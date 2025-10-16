@@ -89,6 +89,7 @@
             const [jobCards, setJobCards] = useState([]);
             const [isSearchingJobs, setIsSearchingJobs] = useState(false);
             const [isUploadingCV, setIsUploadingCV] = useState(false);
+            const [triedQueries, setTriedQueries] = useState(new Set());
             const messagesEndRef = useRef(null);
             const fileInputRef = useRef(null);
 
@@ -127,27 +128,27 @@ In welcher beruflichen Situation befindest du dich gerade?`;
 
 DEINE PERSÖNLICHKEIT:
 - Du bist der EXPERTE - du triffst Entscheidungen basierend auf deiner Expertise
-- Du fragst nicht zurück "Was möchtest du?", sondern machst intelligente Vorschläge
+- Du fragst NIEMALS zurück "Was möchtest du?" - du machst intelligente Vorschläge
 - Du arbeitest im Hintergrund wie ein Profi - der Nutzer sieht nur Ergebnisse
 - Du bist wertschätzend und empathisch, aber nie unsicher oder passiv
+- Du gibst NIEMALS auf - du findest immer einen Weg
 
-WICHTIG: Du hast Zugriff auf echte Job-Daten von JSearch.
+WICHTIG: Du hast Zugriff auf die Arbeitsagentur Jobbörse - die GRÖßTE deutsche Stellendatenbank mit Millionen von Jobs.
 
 JOB-SUCHE BEST PRACTICES:
 - Verwende BREITE Suchbegriffe: "Manager", "Director", "Lead" statt lange Titel-Listen
-- Location: Nur "Germany" oder große Städte ("Berlin", "München", "Hamburg")
-- NIEMALS: "Berlin Germany" - nur "Germany" oder "Berlin"
+- Location: Deutsche Städte ("Berlin", "München", "Hamburg") oder leer lassen für ganz Deutschland
 - Bei spezifischen Rollen: Verkürze auf Kern-Titel ("Operations Manager" statt "COO Chief Operating Officer Agile...")
 
 PROAKTIVES VERHALTEN BEI DER JOB-SUCHE:
 - Wenn du Jobs suchst, sage dem Nutzer NUR die ART der Position (z.B. "Führungspositionen im Operations-Bereich")
 - Erwähne KEINE spezifischen Suchbegriffe wie "COO" oder "Operations Director"
-- Wenn eine Suche fehlschlägt, probierst du AUTOMATISCH alternative Suchbegriffe
-- Der Nutzer sieht KEINE fehlgeschlagenen Suchen - nur erfolgreiche Ergebnisse
-- Erst nach 5 erfolglosen Versuchen gibst du auf und fragst nach Anpassungen
+- Wenn eine Suche fehlschlägt, probierst du AUTOMATISCH alternative Suchbegriffe - bis zu 10 Versuche
+- Der Nutzer sieht KEINE fehlgeschlagenen Suchen - nur erfolgreiche Ergebnisse oder eine finale Rückmeldung
+- Du gibst NIEMALS vorher auf - arbeite durch bis du etwas findest
 
 BEISPIEL GUTE AUSGABE VOR SUCHE:
-"Perfekt! Ich durchsuche jetzt den Jobmarkt für Führungspositionen im operativen Bereich, die zu deiner Change-Management-Expertise und deinem strategischen Profil passen. 🔍"
+"Perfekt! Ich durchsuche jetzt den Jobmarkt für Führungspositionen im operativen Bereich, die zu deiner Change-Management-Expertise passen. 🔍"
 
 NICHT: "Ich suche jetzt nach 'COO Chief Operating Officer' für dich..."
 
@@ -168,52 +169,52 @@ WENN DU EINEN JOB EMPFEHLEN MÖCHTEST, formatiere ihn EXAKT so am Ende deiner Na
   "fitScore": 85,
   "pros": ["Grund 1 warum es passt", "Grund 2 warum es passt"],
   "cons": ["Aspekt der beachtet werden sollte"],
-  "applyUrl": "https://example.com"
+  "applyUrl": "https://www.arbeitsagentur.de/jobsuche/jobdetail/..."
 }]
 
 WICHTIG für Fit-Score: 50% psychografisches Profil, 30% Skills, 20% Umfeld!
 
-WENN DU READY BIST FÜR DIE JOB-SUCHE, schreibe ZUERST eine allgemeine Nachricht, DANN:
+WENN DU READY BIST FÜR DIE JOB-SUCHE, schreibe ZUERST eine allgemeine Nachricht an den Nutzer, DANN am Ende:
 
 [TRIGGER_SEARCH:{
   "query": "Operations Manager",
-  "location": "Germany"
+  "location": "Berlin"
 }]
 
+WICHTIG: Der TRIGGER_SEARCH wird dem Nutzer NICHT angezeigt - nur für das System!
+
 GESPRÄCHSFÜHRUNG:
-- Sei ein hilfreicher Sparringspartner und Coach, besonders bei Unsicherheiten
+- Sei ein hilfreicher Sparringspartner und Coach
 - Stelle NUR EINE Frage pro Nachricht und platziere sie IMMER am Ende
-- Gib bei Fragen sinnvolle Antwortmöglichkeiten als Beispiele zur kognitiven Unterstützung
-- Nutze Emojis angemessen um menschlicher zu wirken und Vertrauen aufzubauen
-- Frage gezielt nach um ein vollständiges Bild zu erhalten, bevor du zur nächsten Hauptfrage übergehst
+- Gib bei Fragen sinnvolle Antwortmöglichkeiten
+- Nutze Emojis angemessen
+- Frage gezielt nach um ein vollständiges Bild zu erhalten
 
 PROFILERSTELLUNG (HERZSTÜCK DEINER ARBEIT):
 Erstelle ein tiefes, mehrdimensionales Profil basierend auf:
 
 1. WERTE & MOTIVATOREN:
-   - Autonomie vs. Struktur: Braucht Freiraum oder klare Vorgaben?
-   - Innovation vs. Stabilität: Risikobereitschaft bei Veränderungen?
-   - Impact vs. Sicherheit: Gestaltungswille vs. Absicherungsbedürfnis?
-   - Kollaboration vs. Expertise: Team-Player oder Fachexperte?
-   - Wachstum vs. Balance: Karriereambition vs. Work-Life-Balance?
+   - Autonomie vs. Struktur
+   - Innovation vs. Stabilität
+   - Impact vs. Sicherheit
+   - Kollaboration vs. Expertise
+   - Wachstum vs. Balance
 
 2. ARBEITSPSYCHOLOGIE:
-   - Entscheidungsstil: Analytisch, intuitiv, konsensbasiert?
-   - Stressresilienz: Wie mit Druck/Deadlines umgehen?
-   - Kommunikationspräferenz: Direkt, diplomatisch, präsentationsstark?
-   - Lerntyp: Hands-on, theoretisch, mentorbasiert?
-   - Führungsstil: Servant Leader, visionär, operativ?
+   - Entscheidungsstil
+   - Stressresilienz
+   - Kommunikationspräferenz
+   - Lerntyp
+   - Führungsstil
 
 3. UMFELD-PRÄFERENZEN:
-   - Unternehmenskultur: Startup-Chaos, Corporate-Struktur, Familienunternehmen?
-   - Team-Dynamik: Kleine Teams, große Projekte, internationale Matrix?
-   - Branche: Traditionell, Tech, Purpose-driven?
-   - Arbeitsmodell: Remote, Office, hybrid, reiseintensiv
-
-Lies dabei auch empathisch und systemisch zwischen den Zeilen.
+   - Unternehmenskultur
+   - Team-Dynamik
+   - Branche
+   - Arbeitsmodell
 
 NUTZE DIESES PROFIL AKTIV:
-- Für die Auswahl von Suchbegriffen (Startup-Typ → "Agile", Corporate-Typ → "Process Excellence")
+- Für die Auswahl von Suchbegriffen
 - Für alternative Suchen wenn nichts gefunden wird
 - Für die Bewertung von Jobs (psychografischer Fit ist wichtiger als Skills!)
 
@@ -225,26 +226,19 @@ DIE DREI HAUPTFRAGEN (nacheinander stellen):
 FIT-SCORE BERECHNUNG:
 GESAMT-FIT-SCORE = (Fachlich × 0.3) + (Psychografisch × 0.5) + (Umfeld × 0.2)
 
-- Fachlicher Fit (30%): Skills-Match, Erfahrungslevel, Lernkurve
-- Psychografischer Fit (50%): Werte-Alignment, Arbeitstyp-Match, Stress-Faktoren
-- Umfeld-Fit (20%): Unternehmenskultur, Team-Struktur, Branche
-
-Halte den Nutzer im Loop über deine Schlussfolgerungen aus dem Profil, bleib dabei aber oberflächlich genug um nicht zu überfordern. Maximal ein Satz.
-
-Gib eine grobe Einschätzung ab, wie viele Fragen noch folgen werden, damit du ein optimales Profil erstellen kannst.
-
 JOBEMPFEHLUNGEN:
 - Zeige IMMER nur EINEN Job pro Nachricht
 - Erkläre ausführlich warum dieser Job zum PSYCHOGRAFISCHEN PROFIL passt
 - Hebe hervor: Kultur-Fit, Arbeitsweise-Fit, Werte-Alignment
-- Nach jedem Job-Vorschlag: warte auf Nutzer-Feedback bevor du den nächsten zeigst
+- Nach jedem Job-Vorschlag: warte auf Nutzer-Feedback
 - Bei Ablehnung: Frage nach der Begründung um das Profil zu verfeinern
 
 ZUSAMMENFASSUNG:
 - Du bist der EXPERTE und Entscheider
-- Psychografisches Profil ist das HERZSTÜCK deiner Arbeit
+- Psychografisches Profil ist das HERZSTÜCK
 - Du arbeitest proaktiv im Hintergrund
-- Der Nutzer sieht nur erfolgreiche Ergebnisse, keine Fehlversuche`;
+- Du gibst NIEMALS auf
+- Der Nutzer sieht nur erfolgreiche Ergebnisse`;
             };
 
             const parseJobCard = (text) => {
@@ -262,41 +256,60 @@ ZUSAMMENFASSUNG:
                 }
             };
 
-            const searchJobs = async (query, location, retryCount = 0) => {
-                const MAX_RETRIES = 5;
+            const searchJobs = async (query, location, currentMessages, retryCount = 0, triedSet = new Set()) => {
+                const MAX_RETRIES = 10;
+                
+                // Normalisiere Query für Duplikat-Check
+                const normalizedQuery = query.toLowerCase().trim();
+                
+                // Skip wenn schon versucht
+                if (triedSet.has(normalizedQuery)) {
+                    console.log(`⏭️ Skipping already tried query: "${query}"`);
+                    if (retryCount < MAX_RETRIES) {
+                        return searchJobs(query + " " + retryCount, location, currentMessages, retryCount, triedSet);
+                    }
+                    return null;
+                }
+                
+                triedSet.add(normalizedQuery);
                 setIsSearchingJobs(true);
                 console.log(`🔍 Search attempt ${retryCount + 1}/${MAX_RETRIES}:`, { query, location });
                 
                 try {
-                    const response = await fetch('/.netlify/functions/search-jobs', {
+                    const response = await fetch('/.netlify/functions/search-jobs-arbeitsagentur', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             query: query,
-                            location: location,
-                            country: 'de'
+                            location: location || '',
+                            radius: 100,
+                            size: 25
                         })
                     });
 
                     const data = await response.json();
                     console.log(`✅ Attempt ${retryCount + 1} response:`, data);
                     
-                    if (!data.data || data.data.length === 0) {
+                    if (!data.jobs || data.jobs.length === 0) {
                         console.warn(`⚠️ No jobs found for "${query}"`);
                         
-                        // Intelligentes Retry - Sam entscheidet basierend auf Profil
+                        // Intelligentes Retry
                         if (retryCount < MAX_RETRIES - 1) {
                             console.log('🔄 Asking Sam for alternative search...');
                             
-                            const retryPrompt = `[SYSTEM: Die Suche nach "${query}" in "${location}" hat keine Ergebnisse geliefert. 
-                            
-Dies ist Versuch ${retryCount + 1} von ${MAX_RETRIES}. Basierend auf dem psychografischen Profil des Nutzers, welcher ALTERNATIVE Suchbegriff würde besser passen?
+                            const retryPrompt = `[SYSTEM: Die Suche nach "${query}" hat keine Ergebnisse geliefert. 
 
-Antworte NUR mit einem neuen TRIGGER_SEARCH - OHNE dem Nutzer zu erklären dass die vorherige Suche fehlgeschlagen ist. Der Nutzer soll nur deine ursprüngliche "Ich suche jetzt..."-Nachricht sehen.
+Dies ist Versuch ${retryCount + 1} von ${MAX_RETRIES}. Basierend auf dem psychografischen Profil des Nutzers, welcher ALTERNATIVE, BREITERE Suchbegriff würde besser passen?
 
-Verwende einen BREITEREN oder ALTERNATIVEN Suchbegriff der zum Profil passt.]`;
+WICHTIG: 
+- Wähle einen ANDEREN Suchbegriff (nicht "${query}")
+- Bereits versucht: ${Array.from(triedSet).join(', ')}
+- Sei kreativer und breiter
+- Nutze Synonyme oder verwandte Begriffe
 
-                            const updatedMessages = [...messages, {
+Antworte NUR mit einem neuen TRIGGER_SEARCH - OHNE dem Nutzer zu erklären dass die Suche fehlgeschlagen ist. Der Nutzer wartet und sieht nur "Suche läuft...".]`;
+
+                            const updatedMessages = [...currentMessages, {
                                 role: 'user',
                                 content: retryPrompt
                             }];
@@ -313,39 +326,42 @@ Verwende einen BREITEREN oder ALTERNATIVEN Suchbegriff der zum Profil passt.]`;
                             const samData = await samResponse.json();
                             const assistantMessage = samData.content[0].text;
                             
-                            // Suche nach neuem TRIGGER_SEARCH
                             const newSearchTrigger = assistantMessage.match(/\[TRIGGER_SEARCH:\s*(\{[\s\S]*?\})\s*\]/);
                             if (newSearchTrigger) {
                                 const newSearchParams = JSON.parse(newSearchTrigger[1]);
                                 console.log('🎯 Sam suggests new search:', newSearchParams);
                                 setIsSearchingJobs(false);
-                                return await searchJobs(newSearchParams.query, newSearchParams.location, retryCount + 1);
+                                return await searchJobs(newSearchParams.query, newSearchParams.location, currentMessages, retryCount + 1, triedSet);
                             }
                         }
                         
-                        // Nach MAX_RETRIES aufgeben
+                        // Nach MAX_RETRIES: Finale Nachricht
                         console.error('❌ All search attempts exhausted');
                         setMessages(prev => [...prev, {
                             role: 'assistant',
-                            content: `Der Markt für diese Art von Positionen ist aktuell sehr eng. Lass uns gemeinsam schauen, ob wir dein Suchprofil leicht anpassen oder verwandte Rollen einbeziehen können. 
+                            content: `Ich habe intensiv gesucht, aber der Markt für diese spezifischen Positionen ist aktuell sehr eng. 
 
-Was hältst du davon, wenn wir auch ähnliche Führungspositionen oder andere Branchen mit einbeziehen?`
+Lass uns das Suchprofil leicht anpassen! Ich schlage vor:
+- Ähnliche Rollen in verwandten Bereichen einzubeziehen
+- Den geografischen Radius zu erweitern
+- Auch Positionen eine Ebene darunter zu betrachten, die Aufstiegspotenzial bieten
+
+Was hältst du davon? Oder möchtest du mir mehr über deine Flexibilität bei Rolle, Ort oder Branche erzählen?`
                         }]);
                         setIsSearchingJobs(false);
-                        return;
+                        return null;
                     }
                     
-                    // Jobs gefunden!
-                    const jobsContext = `Hier sind ${data.data.length} echte Jobs von JSearch für "${query}" in "${location}":
+                    // Jobs gefunden! 🎉
+                    const jobsContext = `Hier sind ${data.jobs.length} echte Jobs von der Bundesagentur für Arbeit für "${query}"${location ? ` in "${location}"` : ''}:
 
-${data.data.slice(0, 5).map((job, i) => `
+${data.jobs.slice(0, 5).map((job, i) => `
 Job ${i + 1}:
-- Titel: ${job.job_title}
-- Firma: ${job.employer_name || 'Unbekannt'}
-- Ort: ${job.job_city || job.job_country || location}
-- Gehalt: ${job.job_min_salary && job.job_max_salary ? `€${job.job_min_salary.toLocaleString()} - €${job.job_max_salary.toLocaleString()}` : job.job_salary_currency && job.job_salary_period ? `${job.job_salary_currency} ${job.job_salary_period}` : 'Nicht angegeben'}
-- Beschreibung: ${job.job_description?.substring(0, 300)}...
-- Bewerbungs-Link: ${job.job_apply_link}
+- Titel: ${job.title}
+- Firma: ${job.company}
+- Ort: ${job.location}
+- Beschreibung: ${job.description}
+- Link: ${job.url}
 `).join('\n')}
 
 WICHTIG: Analysiere diese Jobs tiefgehend basierend auf dem PSYCHOGRAFISCHEN PROFIL des Nutzers:
@@ -353,11 +369,11 @@ WICHTIG: Analysiere diese Jobs tiefgehend basierend auf dem PSYCHOGRAFISCHEN PRO
 - Entspricht die Rolle seinem Arbeitsstil (Entscheidungsfindung, Stressresilienz)?
 - Ist das Umfeld richtig (Startup vs. Corporate, Teamgröße, Remote/Office)?
 
-Der Fit-Score sollte zu 50% auf dem psychografischen Match basieren, nicht nur auf Skills!
+Der Fit-Score sollte zu 50% auf dem psychografischen Match basieren!
 
 Wähle den Job mit dem BESTEN GESAMT-FIT aus und erstelle eine JOB_CARD mit ausführlicher Begründung warum dieser Job zum PERSÖNLICHKEITSPROFIL passt.`;
 
-                    const updatedMessages = [...messages, {
+                    const updatedMessages = [...currentMessages, {
                         role: 'user',
                         content: jobsContext
                     }];
@@ -383,15 +399,18 @@ Wähle den Job mit dem BESTEN GESAMT-FIT aus und erstelle eine JOB_CARD mit ausf
                     } else {
                         setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
                     }
+                    
+                    setIsSearchingJobs(false);
+                    return data.jobs;
 
                 } catch (error) {
                     console.error('❌ Job search error:', error);
                     setMessages(prev => [...prev, {
                         role: 'assistant',
-                        content: 'Es gab leider ein technisches Problem bei der Job-Suche. Lass uns es nochmal versuchen! 🔧'
+                        content: 'Es gab ein technisches Problem bei der Job-Suche. Lass uns es nochmal versuchen! 🔧'
                     }]);
-                } finally {
                     setIsSearchingJobs(false);
+                    return null;
                 }
             };
 
@@ -421,8 +440,7 @@ Wähle den Job mit dem BESTEN GESAMT-FIT aus und erstelle eine JOB_CARD mit ausf
                         }
                         
                         const data = await response.json();
-                        // WICHTIG: CV-Daten sind unsichtbar für User, nur für Sam
-                        const fileMessage = `[SYSTEM: Der Nutzer hat seinen Lebenslauf hochgeladen. Analysiere die Daten und antworte dem Nutzer persönlich und wertschätzend basierend auf dem CV-Inhalt. Zeige NICHT die rohen CV-Daten.]\n\n${data.text}`;
+                        const fileMessage = `[SYSTEM: Der Nutzer hat seinen Lebenslauf hochgeladen. Analysiere die Daten und antworte dem Nutzer persönlich und wertschätzend. Zeige NICHT die rohen CV-Daten.]\n\n${data.text}`;
                         
                         const updatedMessages = [...messages, { role: 'user', content: fileMessage }];
                         setIsUploadingCV(false);
@@ -453,7 +471,7 @@ Wähle den Job mit dem BESTEN GESAMT-FIT aus und erstelle eine JOB_CARD mit ausf
                         console.error('File upload error:', error);
                         setMessages([...messages, {
                             role: 'assistant',
-                            content: 'Fehler beim Verarbeiten deines Lebenslaufs. Bitte versuche es nochmal oder beschreibe deine Erfahrungen im Chat. 🔧'
+                            content: 'Fehler beim Verarbeiten deines Lebenslaufs. Bitte versuche es nochmal. 🔧'
                         }]);
                         setIsUploadingCV(false);
                         setIsLoading(false);
@@ -490,25 +508,29 @@ Wähle den Job mit dem BESTEN GESAMT-FIT aus und erstelle eine JOB_CARD mit ausf
                     const data = await response.json();
                     const assistantMessage = data.content[0].text;
 
+                    // Check für TRIGGER_SEARCH
                     const searchTrigger = assistantMessage.match(/\[TRIGGER_SEARCH:\s*(\{[\s\S]*?\})\s*\]/);
                     if (searchTrigger) {
                         try {
                             const searchParams = JSON.parse(searchTrigger[1]);
-                            const cleanMessage = assistantMessage.replace(/\[TRIGGER_SEARCH:[\s\S]*?\]/, '').trim();
+                            // Entferne TRIGGER_SEARCH komplett aus dem Text
+                            const cleanMessage = assistantMessage.replace(/\[TRIGGER_SEARCH:[\s\S]*?\]/g, '').trim();
                             
-                            // WICHTIG: Zeige Sam's Text VOR der Suche
+                            // Zeige Sam's Nachricht (ohne TRIGGER_SEARCH)
                             if (cleanMessage) {
                                 setMessages([...updatedMessages, { role: 'assistant', content: cleanMessage }]);
                             }
                             
-                            setIsLoading(false); // Loading beenden
-                            await searchJobs(searchParams.query, searchParams.location);
+                            setIsLoading(false);
+                            // Starte Job-Suche
+                            await searchJobs(searchParams.query, searchParams.location, updatedMessages, 0, new Set());
                             return;
                         } catch (e) {
                             console.error('Error parsing search trigger:', e);
                         }
                     }
 
+                    // Normaler Response ohne Trigger
                     const parsed = parseJobCard(assistantMessage);
                     if (parsed) {
                         setJobCards(prev => [...prev, { ...parsed.jobData, id: Date.now() }]);
@@ -533,12 +555,12 @@ Wähle den Job mit dem BESTEN GESAMT-FIT aus und erstelle eine JOB_CARD mit ausf
 
                 let userResponse = '';
                 if (action === 'apply') {
-                    userResponse = `Ich möchte mich für die Position "${job.title}" bewerben. Wie gehe ich am besten vor?`;
+                    userResponse = `Ich möchte mich für die Position "${job.title}" bewerben.`;
                     if (job.applyUrl) {
                         window.open(job.applyUrl, '_blank');
                     }
                 } else if (action === 'save') {
-                    userResponse = `Ich möchte die Position "${job.title}" erstmal speichern. Zeige mir weitere passende Stellen.`;
+                    userResponse = `Ich möchte die Position "${job.title}" speichern. Zeige mir weitere passende Stellen.`;
                 } else if (action === 'reject') {
                     userResponse = `Die Position "${job.title}" passt nicht zu mir.`;
                 }
@@ -599,7 +621,7 @@ Wähle den Job mit dem BESTEN GESAMT-FIT aus und erstelle eine JOB_CARD mit ausf
                             💼 Sam - Dein Karriere-Coach
                         </h1>
                         <p style={{ margin: '5px 0 0 0', fontSize: '14px', opacity: 0.9 }}>
-                            Finde deinen perfekten nächsten Karriereschritt
+                            Powered by Bundesagentur für Arbeit
                         </p>
                     </div>
 
@@ -828,14 +850,14 @@ Wähle den Job mit dem BESTEN GESAMT-FIT aus und erstelle eine JOB_CARD mit ausf
                                         <>
                                             <SearchIcon />
                                             <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                                                Suche passende Jobs...
+                                                Durchsuche Jobbörse...
                                             </span>
                                         </>
                                     ) : isUploadingCV ? (
                                         <>
                                             <UploadIcon />
                                             <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                                                Verarbeite deinen Lebenslauf...
+                                                Verarbeite Lebenslauf...
                                             </span>
                                         </>
                                     ) : (
@@ -870,7 +892,7 @@ Wähle den Job mit dem BESTEN GESAMT-FIT aus und erstelle eine JOB_CARD mit ausf
                             <button
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={isLoading || isSearchingJobs || isUploadingCV}
-                                title="Lebenslauf hochladen (PDF, Word, TXT)"
+                                title="Lebenslauf hochladen"
                                 style={{
                                     padding: '12px',
                                     backgroundColor: '#f3f4f6',
@@ -940,15 +962,7 @@ Wähle den Job mit dem BESTEN GESAMT-FIT aus und erstelle eine JOB_CARD mit ausf
                             fontSize: '12px', 
                             color: '#6b7280' 
                         }}>
-                            <a href="/datenschutz" target="_blank" style={{ color: '#2563eb', textDecoration: 'none' }}>
-                                Datenschutz
-                            </a>
-                            {' · '}
-                            <a href="/agb" target="_blank" style={{ color: '#2563eb', textDecoration: 'none' }}>
-                                AGB
-                            </a>
-                            {' · '}
-                            Powered by Claude
+                            Powered by Claude · Jobs von Bundesagentur für Arbeit
                         </div>
                     </div>
                 </div>

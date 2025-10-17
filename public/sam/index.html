@@ -87,6 +87,8 @@
             const [input, setInput] = useState('');
             const [isLoading, setIsLoading] = useState(false);
             const [jobCards, setJobCards] = useState([]);
+            const [savedJobs, setSavedJobs] = useState([]);
+            const [showSavedJobs, setShowSavedJobs] = useState(false);
             const [isSearchingJobs, setIsSearchingJobs] = useState(false);
             const [isUploadingCV, setIsUploadingCV] = useState(false);
             const [triedQueries, setTriedQueries] = useState(new Set());
@@ -232,6 +234,17 @@ JOBEMPFEHLUNGEN:
 - Hebe hervor: Kultur-Fit, Arbeitsweise-Fit, Werte-Alignment
 - Nach jedem Job-Vorschlag: warte auf Nutzer-Feedback
 - Bei Ablehnung: Frage nach der Begründung um das Profil zu verfeinern
+- Bei "Speichern & weiter": Suche SOFORT nach weiteren Jobs mit TRIGGER_SEARCH
+- Du hörst NUR auf wenn der Nutzer EXPLIZIT stoppt - sonst suchst du weiter
+
+WICHTIG bei "Speichern & weiter":
+Der Nutzer möchte mehr Jobs sehen! Antworte kurz bestätigend und starte SOFORT eine neue Suche:
+"Super! Ich schaue gleich nach weiteren passenden Positionen für dich. 🔍
+
+[TRIGGER_SEARCH:{
+  "query": "...",
+  "location": "..."
+}]"
 
 ZUSAMMENFASSUNG:
 - Du bist der EXPERTE und Entscheider
@@ -248,7 +261,13 @@ ZUSAMMENFASSUNG:
                 try {
                     const jsonString = jobMatch[1].trim();
                     const jobData = JSON.parse(jsonString);
-                    const cleanText = text.replace(/\[JOB_CARD:[\s\S]*?\]/, '').trim();
+                    
+                    // WICHTIG: Entferne die GESAMTE JOB_CARD inklusive aller trailing characters
+                    let cleanText = text.replace(/\[JOB_CARD:\s*\{[\s\S]*?\}\s*\]/g, '').trim();
+                    
+                    // Entferne auch mögliche Reste wie ", "cons": ..." die nach dem Matching übrig bleiben
+                    cleanText = cleanText.replace(/,\s*"(cons|pros|applyUrl)":\s*\[?[^\]]*\]?\s*,?\s*"applyUrl":\s*"[^"]*"\s*\}\s*\]/g, '').trim();
+                    
                     return { jobData, cleanText };
                 } catch (e) {
                     console.error('Error parsing job card:', e);
@@ -371,7 +390,9 @@ WICHTIG: Analysiere diese Jobs tiefgehend basierend auf dem PSYCHOGRAFISCHEN PRO
 
 Der Fit-Score sollte zu 50% auf dem psychografischen Match basieren!
 
-Wähle den Job mit dem BESTEN GESAMT-FIT aus und erstelle eine JOB_CARD mit ausführlicher Begründung warum dieser Job zum PERSÖNLICHKEITSPROFIL passt.`;
+KRITISCH: Bewerte ALLE Top-5 Jobs intern und berechne für jeden einen Fit-Score. Wähle dann den Job mit dem HÖCHSTEN Score aus. Zeige NUR den besten Job - nicht den erstbesten! Der Nutzer soll immer zuerst die beste Empfehlung sehen.
+
+Erstelle eine JOB_CARD für den Job mit dem BESTEN GESAMT-FIT mit ausführlicher Begründung warum dieser Job zum PERSÖNLICHKEITSPROFIL passt.`;
 
                     const updatedMessages = [...currentMessages, {
                         role: 'user',
@@ -560,11 +581,18 @@ Wähle den Job mit dem BESTEN GESAMT-FIT aus und erstelle eine JOB_CARD mit ausf
                         window.open(job.applyUrl, '_blank');
                     }
                 } else if (action === 'save') {
-                    userResponse = `Ich möchte die Position "${job.title}" speichern. Zeige mir weitere passende Stellen.`;
+                    // Job in savedJobs speichern
+                    setSavedJobs(prev => {
+                        // Vermeide Duplikate
+                        if (prev.find(j => j.id === jobId)) return prev;
+                        return [...prev, job];
+                    });
+                    userResponse = `Ich habe die Position "${job.title}" gespeichert. Zeige mir weitere passende Stellen.`;
                 } else if (action === 'reject') {
                     userResponse = `Die Position "${job.title}" passt nicht zu mir.`;
                 }
 
+                // Entferne Job aus aktueller Anzeige
                 setJobCards(prev => prev.filter(j => j.id !== jobId));
 
                 const userMessage = { role: 'user', content: userResponse };
@@ -587,6 +615,25 @@ Wähle den Job mit dem BESTEN GESAMT-FIT aus und erstelle eine JOB_CARD mit ausf
                     const data = await response.json();
                     const assistantMessage = data.content[0].text;
                     
+                    // Check für TRIGGER_SEARCH bei "weitere Stellen"
+                    const searchTrigger = assistantMessage.match(/\[TRIGGER_SEARCH:\s*(\{[\s\S]*?\})\s*\]/);
+                    if (searchTrigger) {
+                        try {
+                            const searchParams = JSON.parse(searchTrigger[1]);
+                            const cleanMessage = assistantMessage.replace(/\[TRIGGER_SEARCH:[\s\S]*?\]/g, '').trim();
+                            
+                            if (cleanMessage) {
+                                setMessages([...updatedMessages, { role: 'assistant', content: cleanMessage }]);
+                            }
+                            
+                            setIsLoading(false);
+                            await searchJobs(searchParams.query, searchParams.location, updatedMessages, 0, new Set());
+                            return;
+                        } catch (e) {
+                            console.error('Error parsing search trigger:', e);
+                        }
+                    }
+                    
                     const parsed = parseJobCard(assistantMessage);
                     if (parsed) {
                         setJobCards(prev => [...prev, { ...parsed.jobData, id: Date.now() }]);
@@ -596,6 +643,10 @@ Wähle den Job mit dem BESTEN GESAMT-FIT aus und erstelle eine JOB_CARD mit ausf
                     }
                 } catch (error) {
                     console.error('Error:', error);
+                    setMessages([...updatedMessages, {
+                        role: 'assistant',
+                        content: 'Entschuldigung, es gab einen Fehler. Lass uns weitermachen! 🔧'
+                    }]);
                 } finally {
                     setIsLoading(false);
                 }
@@ -614,15 +665,43 @@ Wähle den Job mit dem BESTEN GESAMT-FIT aus und erstelle eine JOB_CARD mit ausf
                         backgroundColor: '#2563eb',
                         color: 'white',
                         padding: '20px',
-                        textAlign: 'center',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
                     }}>
-                        <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>
-                            💼 Sam - Dein Karriere-Coach
-                        </h1>
-                        <p style={{ margin: '5px 0 0 0', fontSize: '14px', opacity: 0.9 }}>
-                            Powered by Bundesagentur für Arbeit
-                        </p>
+                        <div style={{ textAlign: 'left' }}>
+                            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>
+                                💼 Sam - Dein Karriere-Coach
+                            </h1>
+                            <p style={{ margin: '5px 0 0 0', fontSize: '14px', opacity: 0.9 }}>
+                                Powered by Bundesagentur für Arbeit
+                            </p>
+                        </div>
+                        
+                        {savedJobs.length > 0 && (
+                            <button
+                                onClick={() => setShowSavedJobs(true)}
+                                style={{
+                                    backgroundColor: 'rgba(255,255,255,0.2)',
+                                    border: '2px solid white',
+                                    color: 'white',
+                                    padding: '10px 20px',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    transition: 'background-color 0.2s'
+                                }}
+                                onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(255,255,255,0.3)'}
+                                onMouseOut={(e) => e.target.style.backgroundColor = 'rgba(255,255,255,0.2)'}
+                            >
+                                📋 Gespeicherte Jobs ({savedJobs.length})
+                            </button>
+                        )}
                     </div>
 
                     <div style={{
@@ -806,7 +885,7 @@ Wähle den Job mit dem BESTEN GESAMT-FIT aus und erstelle eine JOB_CARD mit ausf
                                         }}
                                     >
                                         <BookmarkPlusIcon />
-                                        Speichern
+                                        Speichern & weiter
                                     </button>
                                     
                                     <button
@@ -965,6 +1044,191 @@ Wähle den Job mit dem BESTEN GESAMT-FIT aus und erstelle eine JOB_CARD mit ausf
                             Powered by Claude · Jobs von Bundesagentur für Arbeit
                         </div>
                     </div>
+
+                    {/* Saved Jobs Modal */}
+                    {showSavedJobs && (
+                        <div style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundColor: 'rgba(0,0,0,0.5)',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            zIndex: 1000,
+                            padding: '20px'
+                        }}
+                        onClick={() => setShowSavedJobs(false)}
+                        >
+                            <div style={{
+                                backgroundColor: 'white',
+                                borderRadius: '16px',
+                                maxWidth: '900px',
+                                width: '100%',
+                                maxHeight: '90vh',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                boxShadow: '0 20px 50px rgba(0,0,0,0.3)'
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            >
+                                <div style={{
+                                    padding: '24px',
+                                    borderBottom: '1px solid #e5e7eb',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
+                                    <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>
+                                        📋 Gespeicherte Jobs ({savedJobs.length})
+                                    </h2>
+                                    <button
+                                        onClick={() => setShowSavedJobs(false)}
+                                        style={{
+                                            backgroundColor: 'transparent',
+                                            border: 'none',
+                                            fontSize: '24px',
+                                            cursor: 'pointer',
+                                            color: '#6b7280',
+                                            padding: '4px 8px'
+                                        }}
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                                
+                                <div style={{
+                                    flex: 1,
+                                    overflowY: 'auto',
+                                    padding: '20px'
+                                }}>
+                                    {savedJobs.length === 0 ? (
+                                        <div style={{
+                                            textAlign: 'center',
+                                            padding: '60px 20px',
+                                            color: '#6b7280'
+                                        }}>
+                                            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
+                                            <p style={{ fontSize: '18px', margin: 0 }}>Noch keine Jobs gespeichert</p>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            {[...savedJobs].sort((a, b) => b.fitScore - a.fitScore).map((job) => (
+                                                <div key={job.id} style={{
+                                                    backgroundColor: '#f9fafb',
+                                                    borderRadius: '12px',
+                                                    padding: '20px',
+                                                    border: '2px solid #e5e7eb'
+                                                }}>
+                                                    <div style={{
+                                                        display: 'inline-block',
+                                                        backgroundColor: job.fitScore >= 80 ? '#10b981' : job.fitScore >= 60 ? '#f59e0b' : '#ef4444',
+                                                        color: 'white',
+                                                        padding: '4px 12px',
+                                                        borderRadius: '20px',
+                                                        fontSize: '14px',
+                                                        fontWeight: '600',
+                                                        marginBottom: '12px'
+                                                    }}>
+                                                        {job.fitScore}% Match
+                                                    </div>
+
+                                                    <h3 style={{ 
+                                                        margin: '0 0 8px 0', 
+                                                        fontSize: '18px', 
+                                                        fontWeight: '600',
+                                                        color: '#1f2937'
+                                                    }}>
+                                                        {job.title}
+                                                    </h3>
+
+                                                    <div style={{ 
+                                                        display: 'flex', 
+                                                        gap: '16px', 
+                                                        fontSize: '14px', 
+                                                        color: '#6b7280',
+                                                        marginBottom: '12px',
+                                                        flexWrap: 'wrap'
+                                                    }}>
+                                                        <span>🏢 {job.company}</span>
+                                                        <span>📍 {job.location}</span>
+                                                        {job.salary && <span>💰 {job.salary}</span>}
+                                                    </div>
+
+                                                    <p style={{ 
+                                                        fontSize: '14px', 
+                                                        lineHeight: '1.6', 
+                                                        color: '#374151',
+                                                        marginBottom: '16px'
+                                                    }}>
+                                                        {job.description}
+                                                    </p>
+
+                                                    <div style={{ 
+                                                        display: 'flex', 
+                                                        gap: '12px',
+                                                        flexWrap: 'wrap'
+                                                    }}>
+                                                        <button
+                                                            onClick={() => {
+                                                                if (job.applyUrl) window.open(job.applyUrl, '_blank');
+                                                            }}
+                                                            style={{
+                                                                flex: '1',
+                                                                minWidth: '120px',
+                                                                padding: '10px 16px',
+                                                                backgroundColor: '#2563eb',
+                                                                color: 'white',
+                                                                border: 'none',
+                                                                borderRadius: '8px',
+                                                                fontSize: '14px',
+                                                                fontWeight: '600',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                gap: '8px'
+                                                            }}
+                                                        >
+                                                            <CheckCircleIcon />
+                                                            Bewerben
+                                                        </button>
+                                                        
+                                                        <button
+                                                            onClick={() => {
+                                                                setSavedJobs(prev => prev.filter(j => j.id !== job.id));
+                                                            }}
+                                                            style={{
+                                                                flex: '1',
+                                                                minWidth: '120px',
+                                                                padding: '10px 16px',
+                                                                backgroundColor: '#ef4444',
+                                                                color: 'white',
+                                                                border: 'none',
+                                                                borderRadius: '8px',
+                                                                fontSize: '14px',
+                                                                fontWeight: '600',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                gap: '8px'
+                                                            }}
+                                                        >
+                                                            <Trash2Icon />
+                                                            Entfernen
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };

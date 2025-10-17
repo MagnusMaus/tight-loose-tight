@@ -26,7 +26,7 @@
         const { useState, useRef, useEffect } = React;
         const { createRoot } = ReactDOM;
 
-        // Lucide icons as inline SVGs
+        // Lucide icons
         const SendIcon = () => (
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -91,7 +91,6 @@
             const [showSavedJobs, setShowSavedJobs] = useState(false);
             const [isSearchingJobs, setIsSearchingJobs] = useState(false);
             const [isUploadingCV, setIsUploadingCV] = useState(false);
-            const [triedQueries, setTriedQueries] = useState(new Set());
             const messagesEndRef = useRef(null);
             const fileInputRef = useRef(null);
 
@@ -126,132 +125,77 @@ In welcher beruflichen Situation befindest du dich gerade?`;
             };
 
             const getSystemPrompt = () => {
-                return `Du bist Sam, ein fortschrittlicher KI-Karriere-Coach und Recruiting-Experte. Du agierst wie ein professioneller Headhunter - proaktiv, diskret und zielorientiert.
+                return `Du bist Sam, ein fortschrittlicher KI-Karriere-Coach und Recruiting-Experte.
 
-DEINE PERSÖNLICHKEIT:
-- Du bist der EXPERTE - du triffst Entscheidungen basierend auf deiner Expertise
-- Du fragst NIEMALS zurück "Was möchtest du?" - du machst intelligente Vorschläge
-- Du arbeitest im Hintergrund wie ein Profi - der Nutzer sieht nur Ergebnisse
-- Du bist wertschätzend und empathisch, aber nie unsicher oder passiv
-- Du gibst NIEMALS auf - du findest immer einen Weg
-
-WICHTIG: Du hast Zugriff auf die Arbeitsagentur Jobbörse - die GRÖßTE deutsche Stellendatenbank mit Millionen von Jobs.
+WICHTIG: Du hast Zugriff auf die Arbeitsagentur Jobbörse - die GRÖßTE deutsche Stellendatenbank.
 
 JOB-SUCHE BEST PRACTICES:
-- Verwende BREITE Suchbegriffe: "Manager", "Director", "Lead" statt lange Titel-Listen
-- Location: Deutsche Städte ("Berlin", "München", "Hamburg") oder leer lassen für ganz Deutschland
-- Bei spezifischen Rollen: Verkürze auf Kern-Titel ("Operations Manager" statt "COO Chief Operating Officer Agile...")
+- Verwende BREITE Suchbegriffe: "Manager", "Director", "Lead"
+- Location: Deutsche Städte ("Berlin", "München") oder LEER LASSEN für ganz Deutschland
+- NIEMALS "Deutschland" oder "Germany" als Location - nur Städte oder leer!
 
-PROAKTIVES VERHALTEN BEI DER JOB-SUCHE:
-- Wenn du Jobs suchst, sage dem Nutzer NUR die ART der Position (z.B. "Führungspositionen im Operations-Bereich")
-- Erwähne KEINE spezifischen Suchbegriffe wie "COO" oder "Operations Director"
-- Wenn eine Suche fehlschlägt, probierst du AUTOMATISCH alternative Suchbegriffe - bis zu 10 Versuche
-- Der Nutzer sieht KEINE fehlgeschlagenen Suchen - nur erfolgreiche Ergebnisse oder eine finale Rückmeldung
-- Du gibst NIEMALS vorher auf - arbeite durch bis du etwas findest
+PROAKTIVES VERHALTEN:
+- Wenn du Jobs suchst, sage NUR die ART der Position
+- Erwähne KEINE spezifischen Suchbegriffe
+- Probiere automatisch alternative Suchbegriffe bei 0 Ergebnissen
+- Der Nutzer sieht nur erfolgreiche Ergebnisse
 
-BEISPIEL GUTE AUSGABE VOR SUCHE:
-"Perfekt! Ich durchsuche jetzt den Jobmarkt für Führungspositionen im operativen Bereich, die zu deiner Change-Management-Expertise passen. 🔍"
+CV-UPLOAD: Zeige NIEMALS rohe CV-Daten, nur persönliche Antworten.
 
-NICHT: "Ich suche jetzt nach 'COO Chief Operating Officer' für dich..."
-
-CV-UPLOAD HANDLING:
-Wenn der Nutzer einen CV hochlädt, erhältst du die Daten mit [SYSTEM: ...] Präfix.
-- Zeige dem Nutzer NIEMALS die rohen CV-Daten
-- Antworte persönlich und wertschätzend basierend auf dem CV-Inhalt
-- Beispiel: "Danke für deinen Lebenslauf! Ich sehe du hast 8 Jahre Erfahrung im Operations Management - beeindruckend! Lass mich ein paar Details vertiefen..."
-
-WENN DU EINEN JOB EMPFEHLEN MÖCHTEST, formatiere ihn EXAKT so am Ende deiner Nachricht:
+WENN DU EINEN JOB EMPFEHLEN MÖCHTEST:
 
 [JOB_CARD:{
   "title": "Job Titel",
-  "company": "Firmenname", 
+  "company": "Firma", 
   "location": "Ort",
-  "salary": "Gehalt falls verfügbar",
-  "description": "Kurze prägnante Zusammenfassung in 2-3 Sätzen",
+  "salary": "Gehalt",
+  "description": "2-3 Sätze",
   "fitScore": 85,
-  "pros": ["Grund 1 warum es passt", "Grund 2 warum es passt"],
-  "cons": ["Aspekt der beachtet werden sollte"],
-  "applyUrl": "https://www.arbeitsagentur.de/jobsuche/jobdetail/..."
+  "pros": ["Passt weil..."],
+  "cons": ["Beachte..."],
+  "applyUrl": "https://..."
 }]
 
-WICHTIG für Fit-Score: 50% psychografisches Profil, 30% Skills, 20% Umfeld!
+FIT-SCORE: 50% psychografisch, 30% Skills, 20% Umfeld!
 
-WENN DU READY BIST FÜR DIE JOB-SUCHE, schreibe ZUERST eine allgemeine Nachricht an den Nutzer, DANN am Ende:
+WENN DU READY BIST FÜR JOB-SUCHE:
 
 [TRIGGER_SEARCH:{
   "query": "Operations Manager",
   "location": "Berlin"
 }]
 
-WICHTIG: Der TRIGGER_SEARCH wird dem Nutzer NICHT angezeigt - nur für das System!
+WICHTIG: Bei der Job-Analyse ALLE Top-5 Jobs intern bewerten und den BESTEN auswählen!
 
 GESPRÄCHSFÜHRUNG:
-- Sei ein hilfreicher Sparringspartner und Coach
-- Stelle NUR EINE Frage pro Nachricht und platziere sie IMMER am Ende
-- Gib bei Fragen sinnvolle Antwortmöglichkeiten
+- Stelle NUR EINE Frage pro Nachricht
 - Nutze Emojis angemessen
-- Frage gezielt nach um ein vollständiges Bild zu erhalten
+- Frage gezielt nach für vollständiges Profil
 
-PROFILERSTELLUNG (HERZSTÜCK DEINER ARBEIT):
-Erstelle ein tiefes, mehrdimensionales Profil basierend auf:
+PROFILERSTELLUNG (50% des Fit-Scores!):
+1. Werte & Motivatoren
+2. Arbeitspsychologie  
+3. Umfeld-Präferenzen
 
-1. WERTE & MOTIVATOREN:
-   - Autonomie vs. Struktur
-   - Innovation vs. Stabilität
-   - Impact vs. Sicherheit
-   - Kollaboration vs. Expertise
-   - Wachstum vs. Balance
-
-2. ARBEITSPSYCHOLOGIE:
-   - Entscheidungsstil
-   - Stressresilienz
-   - Kommunikationspräferenz
-   - Lerntyp
-   - Führungsstil
-
-3. UMFELD-PRÄFERENZEN:
-   - Unternehmenskultur
-   - Team-Dynamik
-   - Branche
-   - Arbeitsmodell
-
-NUTZE DIESES PROFIL AKTIV:
-- Für die Auswahl von Suchbegriffen
-- Für alternative Suchen wenn nichts gefunden wird
-- Für die Bewertung von Jobs (psychografischer Fit ist wichtiger als Skills!)
-
-DIE DREI HAUPTFRAGEN (nacheinander stellen):
-1. "In welcher beruflichen Situation befindest du dich gerade?"
-2. "Wo möchtest du dich beruflich hinentwickeln? Falls dir die Frage schwerfällt: Was möchtest du in 3 bis 5 Jahren beruflich tun oder erreicht haben?"
-3. "Welche (besonderen ✨) Fähigkeiten besitzt du? Gehe dabei gern auf deine gesammelten Erfahrungen ein. Wenn du möchtest, dann kannst du gerne dein CV hochladen, um es dir einfach zu machen. 😊📄"
-
-FIT-SCORE BERECHNUNG:
-GESAMT-FIT-SCORE = (Fachlich × 0.3) + (Psychografisch × 0.5) + (Umfeld × 0.2)
+DREI HAUPTFRAGEN:
+1. Berufliche Situation?
+2. Berufliche Entwicklung (3-5 Jahre)?
+3. Fähigkeiten & Erfahrungen? (CV-Upload möglich)
 
 JOBEMPFEHLUNGEN:
-- Zeige IMMER nur EINEN Job pro Nachricht
-- Erkläre ausführlich warum dieser Job zum PSYCHOGRAFISCHEN PROFIL passt
-- Hebe hervor: Kultur-Fit, Arbeitsweise-Fit, Werte-Alignment
-- Nach jedem Job-Vorschlag: warte auf Nutzer-Feedback
-- Bei Ablehnung: Frage nach der Begründung um das Profil zu verfeinern
-- Bei "Speichern & weiter": Suche SOFORT nach weiteren Jobs mit TRIGGER_SEARCH
-- Du hörst NUR auf wenn der Nutzer EXPLIZIT stoppt - sonst suchst du weiter
+- IMMER nur EINEN Job pro Nachricht
+- Erkläre psychografischen Fit ausführlich
+- Warte auf Feedback
+- Bei "Speichern & weiter": SOFORT neue Suche mit TRIGGER_SEARCH
+- Du hörst NUR auf wenn User EXPLIZIT stoppt
 
-WICHTIG bei "Speichern & weiter":
-Der Nutzer möchte mehr Jobs sehen! Antworte kurz bestätigend und starte SOFORT eine neue Suche:
-"Super! Ich schaue gleich nach weiteren passenden Positionen für dich. 🔍
+Bei "Speichern & weiter":
+"Super! Ich schaue nach weiteren Positionen. 🔍
 
 [TRIGGER_SEARCH:{
   "query": "...",
   "location": "..."
-}]"
-
-ZUSAMMENFASSUNG:
-- Du bist der EXPERTE und Entscheider
-- Psychografisches Profil ist das HERZSTÜCK
-- Du arbeitest proaktiv im Hintergrund
-- Du gibst NIEMALS auf
-- Der Nutzer sieht nur erfolgreiche Ergebnisse`;
+}]"`;
             };
 
             const parseJobCard = (text) => {
@@ -261,32 +205,71 @@ ZUSAMMENFASSUNG:
                 try {
                     const jsonString = jobMatch[1].trim();
                     const jobData = JSON.parse(jsonString);
-                    
-                    // WICHTIG: Entferne die GESAMTE JOB_CARD inklusive aller trailing characters
-                    let cleanText = text.replace(/\[JOB_CARD:\s*\{[\s\S]*?\}\s*\]/g, '').trim();
-                    
-                    // Entferne auch mögliche Reste wie ", "cons": ..." die nach dem Matching übrig bleiben
-                    cleanText = cleanText.replace(/,\s*"(cons|pros|applyUrl)":\s*\[?[^\]]*\]?\s*,?\s*"applyUrl":\s*"[^"]*"\s*\}\s*\]/g, '').trim();
-                    
+                    const cleanText = text.replace(/\[JOB_CARD:\s*\{[\s\S]*?\}\s*\]/g, '').trim();
                     return { jobData, cleanText };
                 } catch (e) {
-                    console.error('Error parsing job card:', e);
+                    console.error('❌ Error parsing job card:', e);
                     return null;
                 }
+            };
+
+            // ZENTRALE FUNKTION: Verarbeitet Sam's Response (mit oder ohne TRIGGER_SEARCH)
+            const processSamResponse = async (assistantMessage, updatedMessages) => {
+                console.log('📥 Processing Sam response');
+                
+                // SCHRITT 1: Check für TRIGGER_SEARCH (Priorität!)
+                const searchTrigger = assistantMessage.match(/\[TRIGGER_SEARCH:\s*(\{[\s\S]*?\})\s*\]/);
+                
+                if (searchTrigger) {
+                    console.log('🔍 TRIGGER_SEARCH detected!');
+                    try {
+                        const searchParams = JSON.parse(searchTrigger[1]);
+                        console.log('✅ Search params:', searchParams);
+                        
+                        // Entferne TRIGGER_SEARCH aus Text
+                        const cleanMessage = assistantMessage.replace(/\[TRIGGER_SEARCH:\s*\{[\s\S]*?\}\s*\]/g, '').trim();
+                        
+                        // Zeige Sam's Nachricht (ohne TRIGGER_SEARCH)
+                        if (cleanMessage) {
+                            setMessages(prev => [...prev, { role: 'assistant', content: cleanMessage }]);
+                        }
+                        
+                        setIsLoading(false);
+                        
+                        // Starte Job-Suche
+                        await searchJobs(searchParams.query, searchParams.location, updatedMessages, 0, new Set());
+                        return true; // Verarbeitet!
+                        
+                    } catch (e) {
+                        console.error('❌ Error parsing TRIGGER_SEARCH:', e);
+                        // Fahre fort mit normaler Verarbeitung
+                    }
+                }
+                
+                // SCHRITT 2: Check für JOB_CARD
+                const parsed = parseJobCard(assistantMessage);
+                if (parsed) {
+                    console.log('📋 Job card detected');
+                    setJobCards(prev => [...prev, { ...parsed.jobData, id: Date.now() }]);
+                    if (parsed.cleanText) {
+                        setMessages(prev => [...prev, { role: 'assistant', content: parsed.cleanText }]);
+                    }
+                    return true;
+                }
+                
+                // SCHRITT 3: Normaler Text
+                console.log('💬 Normal message');
+                setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
+                return true;
             };
 
             const searchJobs = async (query, location, currentMessages, retryCount = 0, triedSet = new Set()) => {
                 const MAX_RETRIES = 10;
                 
-                // Normalisiere Query für Duplikat-Check
                 const normalizedQuery = query.toLowerCase().trim();
                 
-                // Skip wenn schon versucht
-                if (triedSet.has(normalizedQuery)) {
-                    console.log(`⏭️ Skipping already tried query: "${query}"`);
-                    if (retryCount < MAX_RETRIES) {
-                        return searchJobs(query + " " + retryCount, location, currentMessages, retryCount, triedSet);
-                    }
+                if (triedSet.has(normalizedQuery) && retryCount < MAX_RETRIES) {
+                    console.log(`⏭️ Skipping duplicate: "${query}"`);
                     return null;
                 }
                 
@@ -307,26 +290,21 @@ ZUSAMMENFASSUNG:
                     });
 
                     const data = await response.json();
-                    console.log(`✅ Attempt ${retryCount + 1} response:`, data);
+                    console.log(`✅ Attempt ${retryCount + 1} response:`, data.total, 'jobs');
                     
                     if (!data.jobs || data.jobs.length === 0) {
                         console.warn(`⚠️ No jobs found for "${query}"`);
                         
-                        // Intelligentes Retry
                         if (retryCount < MAX_RETRIES - 1) {
-                            console.log('🔄 Asking Sam for alternative search...');
+                            console.log('🔄 Asking Sam for alternative...');
                             
-                            const retryPrompt = `[SYSTEM: Die Suche nach "${query}" hat keine Ergebnisse geliefert. 
+                            const retryPrompt = `[SYSTEM: Suche nach "${query}" hat 0 Ergebnisse. Dies ist Versuch ${retryCount + 1}/${MAX_RETRIES}. 
 
-Dies ist Versuch ${retryCount + 1} von ${MAX_RETRIES}. Basierend auf dem psychografischen Profil des Nutzers, welcher ALTERNATIVE, BREITERE Suchbegriff würde besser passen?
+Bereits versucht: ${Array.from(triedSet).join(', ')}
 
-WICHTIG: 
-- Wähle einen ANDEREN Suchbegriff (nicht "${query}")
-- Bereits versucht: ${Array.from(triedSet).join(', ')}
-- Sei kreativer und breiter
-- Nutze Synonyme oder verwandte Begriffe
+Wähle einen ANDEREN, BREITEREN Suchbegriff basierend auf dem Profil. 
 
-Antworte NUR mit einem neuen TRIGGER_SEARCH - OHNE dem Nutzer zu erklären dass die Suche fehlgeschlagen ist. Der Nutzer wartet und sieht nur "Suche läuft...".]`;
+Antworte NUR mit TRIGGER_SEARCH - OHNE dem Nutzer zu sagen dass die Suche fehlgeschlagen ist.]`;
 
                             const updatedMessages = [...currentMessages, {
                                 role: 'user',
@@ -348,31 +326,25 @@ Antworte NUR mit einem neuen TRIGGER_SEARCH - OHNE dem Nutzer zu erklären dass 
                             const newSearchTrigger = assistantMessage.match(/\[TRIGGER_SEARCH:\s*(\{[\s\S]*?\})\s*\]/);
                             if (newSearchTrigger) {
                                 const newSearchParams = JSON.parse(newSearchTrigger[1]);
-                                console.log('🎯 Sam suggests new search:', newSearchParams);
+                                console.log('🎯 Sam suggests:', newSearchParams);
                                 setIsSearchingJobs(false);
                                 return await searchJobs(newSearchParams.query, newSearchParams.location, currentMessages, retryCount + 1, triedSet);
                             }
                         }
                         
-                        // Nach MAX_RETRIES: Finale Nachricht
-                        console.error('❌ All search attempts exhausted');
+                        console.error('❌ All retries exhausted');
                         setMessages(prev => [...prev, {
                             role: 'assistant',
-                            content: `Ich habe intensiv gesucht, aber der Markt für diese spezifischen Positionen ist aktuell sehr eng. 
-
-Lass uns das Suchprofil leicht anpassen! Ich schlage vor:
-- Ähnliche Rollen in verwandten Bereichen einzubeziehen
-- Den geografischen Radius zu erweitern
-- Auch Positionen eine Ebene darunter zu betrachten, die Aufstiegspotenzial bieten
-
-Was hältst du davon? Oder möchtest du mir mehr über deine Flexibilität bei Rolle, Ort oder Branche erzählen?`
+                            content: `Ich habe intensiv gesucht, aber der Markt ist aktuell eng. Lass uns das Suchprofil anpassen - andere Regionen oder verwandte Rollen einbeziehen?`
                         }]);
                         setIsSearchingJobs(false);
                         return null;
                     }
                     
-                    // Jobs gefunden! 🎉
-                    const jobsContext = `Hier sind ${data.jobs.length} echte Jobs von der Bundesagentur für Arbeit für "${query}"${location ? ` in "${location}"` : ''}:
+                    // Jobs gefunden! 
+                    console.log(`🎉 Found ${data.jobs.length} jobs!`);
+                    
+                    const jobsContext = `Hier sind ${data.jobs.length} Jobs von der Bundesagentur für "${query}"${location ? ` in "${location}"` : ''}:
 
 ${data.jobs.slice(0, 5).map((job, i) => `
 Job ${i + 1}:
@@ -383,16 +355,9 @@ Job ${i + 1}:
 - Link: ${job.url}
 `).join('\n')}
 
-WICHTIG: Analysiere diese Jobs tiefgehend basierend auf dem PSYCHOGRAFISCHEN PROFIL des Nutzers:
-- Passt die Unternehmenskultur zu seinen Werten (Autonomie, Innovation, Impact)?
-- Entspricht die Rolle seinem Arbeitsstil (Entscheidungsfindung, Stressresilienz)?
-- Ist das Umfeld richtig (Startup vs. Corporate, Teamgröße, Remote/Office)?
+KRITISCH: Bewerte ALLE 5 Jobs intern, berechne Fit-Scores (50% psychografisch!), wähle den BESTEN aus.
 
-Der Fit-Score sollte zu 50% auf dem psychografischen Match basieren!
-
-KRITISCH: Bewerte ALLE Top-5 Jobs intern und berechne für jeden einen Fit-Score. Wähle dann den Job mit dem HÖCHSTEN Score aus. Zeige NUR den besten Job - nicht den erstbesten! Der Nutzer soll immer zuerst die beste Empfehlung sehen.
-
-Erstelle eine JOB_CARD für den Job mit dem BESTEN GESAMT-FIT mit ausführlicher Begründung warum dieser Job zum PERSÖNLICHKEITSPROFIL passt.`;
+Erstelle JOB_CARD für den Job mit HÖCHSTEM FIT mit Begründung warum er zum Persönlichkeitsprofil passt.`;
 
                     const updatedMessages = [...currentMessages, {
                         role: 'user',
@@ -425,10 +390,10 @@ Erstelle eine JOB_CARD für den Job mit dem BESTEN GESAMT-FIT mit ausführlicher
                     return data.jobs;
 
                 } catch (error) {
-                    console.error('❌ Job search error:', error);
+                    console.error('❌ Search error:', error);
                     setMessages(prev => [...prev, {
                         role: 'assistant',
-                        content: 'Es gab ein technisches Problem bei der Job-Suche. Lass uns es nochmal versuchen! 🔧'
+                        content: 'Technisches Problem bei der Suche. Lass uns es nochmal versuchen! 🔧'
                     }]);
                     setIsSearchingJobs(false);
                     return null;
@@ -440,6 +405,7 @@ Erstelle eine JOB_CARD für den Job mit dem BESTEN GESAMT-FIT mit ausführlicher
                 if (!file) return;
 
                 setIsUploadingCV(true);
+                console.log('📄 CV upload started');
                 
                 const reader = new FileReader();
                 reader.onload = async (e) => {
@@ -461,7 +427,7 @@ Erstelle eine JOB_CARD für den Job mit dem BESTEN GESAMT-FIT mit ausführlicher
                         }
                         
                         const data = await response.json();
-                        const fileMessage = `[SYSTEM: Der Nutzer hat seinen Lebenslauf hochgeladen. Analysiere die Daten und antworte dem Nutzer persönlich und wertschätzend. Zeige NICHT die rohen CV-Daten.]\n\n${data.text}`;
+                        const fileMessage = `[SYSTEM: Der Nutzer hat seinen Lebenslauf hochgeladen. Analysiere und antworte persönlich. Zeige NICHT die rohen Daten.]\n\n${data.text}`;
                         
                         const updatedMessages = [...messages, { role: 'user', content: fileMessage }];
                         setIsUploadingCV(false);
@@ -479,20 +445,15 @@ Erstelle eine JOB_CARD für den Job mit dem BESTEN GESAMT-FIT mit ausführlicher
                         const samData = await samResponse.json();
                         const assistantMessage = samData.content[0].text;
 
-                        const parsed = parseJobCard(assistantMessage);
-                        if (parsed) {
-                            setJobCards(prev => [...prev, { ...parsed.jobData, id: Date.now() }]);
-                            setMessages([...messages, { role: 'assistant', content: parsed.cleanText }]);
-                        } else {
-                            setMessages([...messages, { role: 'assistant', content: assistantMessage }]);
-                        }
+                        // WICHTIG: Nutze zentrale Verarbeitungsfunktion!
+                        await processSamResponse(assistantMessage, updatedMessages);
                         setIsLoading(false);
                         
                     } catch (error) {
-                        console.error('File upload error:', error);
+                        console.error('❌ CV upload error:', error);
                         setMessages([...messages, {
                             role: 'assistant',
-                            content: 'Fehler beim Verarbeiten deines Lebenslaufs. Bitte versuche es nochmal. 🔧'
+                            content: 'Fehler beim Verarbeiten. Bitte nochmal versuchen. 🔧'
                         }]);
                         setIsUploadingCV(false);
                         setIsLoading(false);
@@ -513,9 +474,7 @@ Erstelle eine JOB_CARD für den Job mit dem BESTEN GESAMT-FIT mit ausführlicher
                 try {
                     const response = await fetch('/.netlify/functions/chat', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             messages: updatedMessages,
                             system: getSystemPrompt()
@@ -529,41 +488,14 @@ Erstelle eine JOB_CARD für den Job mit dem BESTEN GESAMT-FIT mit ausführlicher
                     const data = await response.json();
                     const assistantMessage = data.content[0].text;
 
-                    // Check für TRIGGER_SEARCH
-                    const searchTrigger = assistantMessage.match(/\[TRIGGER_SEARCH:\s*(\{[\s\S]*?\})\s*\]/);
-                    if (searchTrigger) {
-                        try {
-                            const searchParams = JSON.parse(searchTrigger[1]);
-                            // Entferne TRIGGER_SEARCH komplett aus dem Text
-                            const cleanMessage = assistantMessage.replace(/\[TRIGGER_SEARCH:[\s\S]*?\]/g, '').trim();
-                            
-                            // Zeige Sam's Nachricht (ohne TRIGGER_SEARCH)
-                            if (cleanMessage) {
-                                setMessages([...updatedMessages, { role: 'assistant', content: cleanMessage }]);
-                            }
-                            
-                            setIsLoading(false);
-                            // Starte Job-Suche
-                            await searchJobs(searchParams.query, searchParams.location, updatedMessages, 0, new Set());
-                            return;
-                        } catch (e) {
-                            console.error('Error parsing search trigger:', e);
-                        }
-                    }
+                    // Nutze zentrale Verarbeitungsfunktion!
+                    await processSamResponse(assistantMessage, updatedMessages);
 
-                    // Normaler Response ohne Trigger
-                    const parsed = parseJobCard(assistantMessage);
-                    if (parsed) {
-                        setJobCards(prev => [...prev, { ...parsed.jobData, id: Date.now() }]);
-                        setMessages([...updatedMessages, { role: 'assistant', content: parsed.cleanText }]);
-                    } else {
-                        setMessages([...updatedMessages, { role: 'assistant', content: assistantMessage }]);
-                    }
                 } catch (error) {
-                    console.error('Error:', error);
+                    console.error('❌ Error:', error);
                     setMessages([...updatedMessages, { 
                         role: 'assistant', 
-                        content: 'Entschuldigung, es gab einen technischen Fehler. Bitte versuche es nochmal.' 
+                        content: 'Technischer Fehler. Bitte nochmal versuchen.' 
                     }]);
                 } finally {
                     setIsLoading(false);
@@ -576,23 +508,18 @@ Erstelle eine JOB_CARD für den Job mit dem BESTEN GESAMT-FIT mit ausführlicher
 
                 let userResponse = '';
                 if (action === 'apply') {
-                    userResponse = `Ich möchte mich für die Position "${job.title}" bewerben.`;
-                    if (job.applyUrl) {
-                        window.open(job.applyUrl, '_blank');
-                    }
+                    userResponse = `Ich möchte mich für "${job.title}" bewerben.`;
+                    if (job.applyUrl) window.open(job.applyUrl, '_blank');
                 } else if (action === 'save') {
-                    // Job in savedJobs speichern
                     setSavedJobs(prev => {
-                        // Vermeide Duplikate
                         if (prev.find(j => j.id === jobId)) return prev;
                         return [...prev, job];
                     });
-                    userResponse = `Ich habe die Position "${job.title}" gespeichert. Zeige mir weitere passende Stellen.`;
+                    userResponse = `"${job.title}" gespeichert. Zeige mir weitere Stellen.`;
                 } else if (action === 'reject') {
-                    userResponse = `Die Position "${job.title}" passt nicht zu mir.`;
+                    userResponse = `"${job.title}" passt nicht.`;
                 }
 
-                // Entferne Job aus aktueller Anzeige
                 setJobCards(prev => prev.filter(j => j.id !== jobId));
 
                 const userMessage = { role: 'user', content: userResponse };
@@ -603,9 +530,7 @@ Erstelle eine JOB_CARD für den Job mit dem BESTEN GESAMT-FIT mit ausführlicher
                 try {
                     const response = await fetch('/.netlify/functions/chat', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             messages: updatedMessages,
                             system: getSystemPrompt()
@@ -615,37 +540,14 @@ Erstelle eine JOB_CARD für den Job mit dem BESTEN GESAMT-FIT mit ausführlicher
                     const data = await response.json();
                     const assistantMessage = data.content[0].text;
                     
-                    // Check für TRIGGER_SEARCH bei "weitere Stellen"
-                    const searchTrigger = assistantMessage.match(/\[TRIGGER_SEARCH:\s*(\{[\s\S]*?\})\s*\]/);
-                    if (searchTrigger) {
-                        try {
-                            const searchParams = JSON.parse(searchTrigger[1]);
-                            const cleanMessage = assistantMessage.replace(/\[TRIGGER_SEARCH:[\s\S]*?\]/g, '').trim();
-                            
-                            if (cleanMessage) {
-                                setMessages([...updatedMessages, { role: 'assistant', content: cleanMessage }]);
-                            }
-                            
-                            setIsLoading(false);
-                            await searchJobs(searchParams.query, searchParams.location, updatedMessages, 0, new Set());
-                            return;
-                        } catch (e) {
-                            console.error('Error parsing search trigger:', e);
-                        }
-                    }
-                    
-                    const parsed = parseJobCard(assistantMessage);
-                    if (parsed) {
-                        setJobCards(prev => [...prev, { ...parsed.jobData, id: Date.now() }]);
-                        setMessages([...updatedMessages, { role: 'assistant', content: parsed.cleanText }]);
-                    } else {
-                        setMessages([...updatedMessages, { role: 'assistant', content: assistantMessage }]);
-                    }
+                    // Nutze zentrale Verarbeitungsfunktion!
+                    await processSamResponse(assistantMessage, updatedMessages);
+
                 } catch (error) {
-                    console.error('Error:', error);
+                    console.error('❌ Error:', error);
                     setMessages([...updatedMessages, {
                         role: 'assistant',
-                        content: 'Entschuldigung, es gab einen Fehler. Lass uns weitermachen! 🔧'
+                        content: 'Fehler. Lass uns weitermachen! 🔧'
                     }]);
                 } finally {
                     setIsLoading(false);
@@ -693,11 +595,8 @@ Erstelle eine JOB_CARD für den Job mit dem BESTEN GESAMT-FIT mit ausführlicher
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '8px',
-                                    transition: 'background-color 0.2s'
+                                    gap: '8px'
                                 }}
-                                onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(255,255,255,0.3)'}
-                                onMouseOut={(e) => e.target.style.backgroundColor = 'rgba(255,255,255,0.2)'}
                             >
                                 📋 Gespeicherte Jobs ({savedJobs.length})
                             </button>
@@ -759,53 +658,26 @@ Erstelle eine JOB_CARD für den Job mit dem BESTEN GESAMT-FIT mit ausführlicher
                                     {job.fitScore}% Match
                                 </div>
 
-                                <h3 style={{ 
-                                    margin: '0 0 8px 0', 
-                                    fontSize: '20px', 
-                                    fontWeight: '600',
-                                    color: '#1f2937'
-                                }}>
+                                <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: '600', color: '#1f2937' }}>
                                     {job.title}
                                 </h3>
 
-                                <div style={{ 
-                                    display: 'flex', 
-                                    gap: '16px', 
-                                    fontSize: '14px', 
-                                    color: '#6b7280',
-                                    marginBottom: '16px',
-                                    flexWrap: 'wrap'
-                                }}>
+                                <div style={{ display: 'flex', gap: '16px', fontSize: '14px', color: '#6b7280', marginBottom: '16px', flexWrap: 'wrap' }}>
                                     <span>🏢 {job.company}</span>
                                     <span>📍 {job.location}</span>
                                     {job.salary && <span>💰 {job.salary}</span>}
                                 </div>
 
-                                <p style={{ 
-                                    fontSize: '15px', 
-                                    lineHeight: '1.6', 
-                                    color: '#374151',
-                                    marginBottom: '16px'
-                                }}>
+                                <p style={{ fontSize: '15px', lineHeight: '1.6', color: '#374151', marginBottom: '16px' }}>
                                     {job.description}
                                 </p>
 
                                 {job.pros && job.pros.length > 0 && (
                                     <div style={{ marginBottom: '12px' }}>
-                                        <div style={{ 
-                                            fontSize: '14px', 
-                                            fontWeight: '600', 
-                                            color: '#10b981',
-                                            marginBottom: '6px'
-                                        }}>
+                                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#10b981', marginBottom: '6px' }}>
                                             ✅ Was passt:
                                         </div>
-                                        <ul style={{ 
-                                            margin: 0, 
-                                            paddingLeft: '20px',
-                                            fontSize: '14px',
-                                            color: '#374151'
-                                        }}>
+                                        <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '14px', color: '#374151' }}>
                                             {job.pros.map((pro, i) => (
                                                 <li key={i} style={{ marginBottom: '4px' }}>{pro}</li>
                                             ))}
@@ -815,20 +687,10 @@ Erstelle eine JOB_CARD für den Job mit dem BESTEN GESAMT-FIT mit ausführlicher
 
                                 {job.cons && job.cons.length > 0 && (
                                     <div style={{ marginBottom: '20px' }}>
-                                        <div style={{ 
-                                            fontSize: '14px', 
-                                            fontWeight: '600', 
-                                            color: '#f59e0b',
-                                            marginBottom: '6px'
-                                        }}>
+                                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#f59e0b', marginBottom: '6px' }}>
                                             ⚠️ Beachte:
                                         </div>
-                                        <ul style={{ 
-                                            margin: 0, 
-                                            paddingLeft: '20px',
-                                            fontSize: '14px',
-                                            color: '#374151'
-                                        }}>
+                                        <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '14px', color: '#374151' }}>
                                             {job.cons.map((con, i) => (
                                                 <li key={i} style={{ marginBottom: '4px' }}>{con}</li>
                                             ))}
@@ -836,12 +698,7 @@ Erstelle eine JOB_CARD für den Job mit dem BESTEN GESAMT-FIT mit ausführlicher
                                     </div>
                                 )}
 
-                                <div style={{ 
-                                    display: 'flex', 
-                                    gap: '12px',
-                                    marginTop: '20px',
-                                    flexWrap: 'wrap'
-                                }}>
+                                <div style={{ display: 'flex', gap: '12px', marginTop: '20px', flexWrap: 'wrap' }}>
                                     <button
                                         onClick={() => handleJobAction(job.id, 'apply')}
                                         style={{
@@ -953,98 +810,6 @@ Erstelle eine JOB_CARD für den Job mit dem BESTEN GESAMT-FIT mit ausführlicher
                         <div ref={messagesEndRef} />
                     </div>
 
-                    <div style={{
-                        padding: '20px',
-                        backgroundColor: 'white',
-                        borderTop: '1px solid #e5e7eb',
-                        boxShadow: '0 -2px 4px rgba(0,0,0,0.05)'
-                    }}>
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleFileUpload}
-                                accept=".txt,.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                                style={{ display: 'none' }}
-                            />
-                            
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                disabled={isLoading || isSearchingJobs || isUploadingCV}
-                                title="Lebenslauf hochladen"
-                                style={{
-                                    padding: '12px',
-                                    backgroundColor: '#f3f4f6',
-                                    border: '1px solid #d1d5db',
-                                    borderRadius: '8px',
-                                    cursor: (isLoading || isSearchingJobs || isUploadingCV) ? 'not-allowed' : 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    opacity: (isLoading || isSearchingJobs || isUploadingCV) ? 0.5 : 1
-                                }}
-                            >
-                                <FileUpIcon />
-                            </button>
-
-                            <textarea
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyPress={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        handleSend();
-                                    }
-                                }}
-                                placeholder="Schreibe deine Antwort..."
-                                disabled={isLoading || isSearchingJobs || isUploadingCV}
-                                style={{
-                                    flex: 1,
-                                    padding: '12px 16px',
-                                    borderRadius: '8px',
-                                    border: '1px solid #d1d5db',
-                                    fontSize: '15px',
-                                    resize: 'none',
-                                    minHeight: '48px',
-                                    maxHeight: '120px',
-                                    fontFamily: 'inherit',
-                                    outline: 'none'
-                                }}
-                                rows={1}
-                            />
-
-                            <button
-                                onClick={handleSend}
-                                disabled={!input.trim() || isLoading || isSearchingJobs || isUploadingCV}
-                                style={{
-                                    padding: '12px 24px',
-                                    backgroundColor: (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) ? '#2563eb' : '#d1d5db',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    fontSize: '15px',
-                                    fontWeight: '600',
-                                    cursor: (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) ? 'pointer' : 'not-allowed',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px'
-                                }}
-                            >
-                                <SendIcon />
-                                Senden
-                            </button>
-                        </div>
-                        
-                        <div style={{ 
-                            marginTop: '12px', 
-                            textAlign: 'center', 
-                            fontSize: '12px', 
-                            color: '#6b7280' 
-                        }}>
-                            Powered by Claude · Jobs von Bundesagentur für Arbeit
-                        </div>
-                    </div>
-
                     {/* Saved Jobs Modal */}
                     {showSavedJobs && (
                         <div style={{
@@ -1135,42 +900,21 @@ Erstelle eine JOB_CARD für den Job mit dem BESTEN GESAMT-FIT mit ausführlicher
                                                         {job.fitScore}% Match
                                                     </div>
 
-                                                    <h3 style={{ 
-                                                        margin: '0 0 8px 0', 
-                                                        fontSize: '18px', 
-                                                        fontWeight: '600',
-                                                        color: '#1f2937'
-                                                    }}>
+                                                    <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600', color: '#1f2937' }}>
                                                         {job.title}
                                                     </h3>
 
-                                                    <div style={{ 
-                                                        display: 'flex', 
-                                                        gap: '16px', 
-                                                        fontSize: '14px', 
-                                                        color: '#6b7280',
-                                                        marginBottom: '12px',
-                                                        flexWrap: 'wrap'
-                                                    }}>
+                                                    <div style={{ display: 'flex', gap: '16px', fontSize: '14px', color: '#6b7280', marginBottom: '12px', flexWrap: 'wrap' }}>
                                                         <span>🏢 {job.company}</span>
                                                         <span>📍 {job.location}</span>
                                                         {job.salary && <span>💰 {job.salary}</span>}
                                                     </div>
 
-                                                    <p style={{ 
-                                                        fontSize: '14px', 
-                                                        lineHeight: '1.6', 
-                                                        color: '#374151',
-                                                        marginBottom: '16px'
-                                                    }}>
+                                                    <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#374151', marginBottom: '16px' }}>
                                                         {job.description}
                                                     </p>
 
-                                                    <div style={{ 
-                                                        display: 'flex', 
-                                                        gap: '12px',
-                                                        flexWrap: 'wrap'
-                                                    }}>
+                                                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                                                         <button
                                                             onClick={() => {
                                                                 if (job.applyUrl) window.open(job.applyUrl, '_blank');
@@ -1229,6 +973,93 @@ Erstelle eine JOB_CARD für den Job mit dem BESTEN GESAMT-FIT mit ausführlicher
                             </div>
                         </div>
                     )}
+
+                    <div style={{
+                        padding: '20px',
+                        backgroundColor: 'white',
+                        borderTop: '1px solid #e5e7eb',
+                        boxShadow: '0 -2px 4px rgba(0,0,0,0.05)'
+                    }}>
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileUpload}
+                                accept=".txt,.pdf,.doc,.docx"
+                                style={{ display: 'none' }}
+                            />
+                            
+                            <button
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isLoading || isSearchingJobs || isUploadingCV}
+                                title="Lebenslauf hochladen"
+                                style={{
+                                    padding: '12px',
+                                    backgroundColor: '#f3f4f6',
+                                    border: '1px solid #d1d5db',
+                                    borderRadius: '8px',
+                                    cursor: (isLoading || isSearchingJobs || isUploadingCV) ? 'not-allowed' : 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    opacity: (isLoading || isSearchingJobs || isUploadingCV) ? 0.5 : 1
+                                }}
+                            >
+                                <FileUpIcon />
+                            </button>
+
+                            <textarea
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSend();
+                                    }
+                                }}
+                                placeholder="Schreibe deine Antwort..."
+                                disabled={isLoading || isSearchingJobs || isUploadingCV}
+                                style={{
+                                    flex: 1,
+                                    padding: '12px 16px',
+                                    borderRadius: '8px',
+                                    border: '1px solid #d1d5db',
+                                    fontSize: '15px',
+                                    resize: 'none',
+                                    minHeight: '48px',
+                                    maxHeight: '120px',
+                                    fontFamily: 'inherit',
+                                    outline: 'none'
+                                }}
+                                rows={1}
+                            />
+
+                            <button
+                                onClick={handleSend}
+                                disabled={!input.trim() || isLoading || isSearchingJobs || isUploadingCV}
+                                style={{
+                                    padding: '12px 24px',
+                                    backgroundColor: (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) ? '#2563eb' : '#d1d5db',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    fontSize: '15px',
+                                    fontWeight: '600',
+                                    cursor: (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) ? 'pointer' : 'not-allowed',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}
+                            >
+                                <SendIcon />
+                                Senden
+                            </button>
+                        </div>
+                        
+                        <div style={{ marginTop: '12px', textAlign: 'center', fontSize: '12px', color: '#6b7280' }}>
+                            Powered by Claude · Jobs von Bundesagentur für Arbeit
+                        </div>
+                    </div>
                 </div>
             );
         };
@@ -1241,8 +1072,8 @@ Erstelle eine JOB_CARD für den Job mit dem BESTEN GESAMT-FIT mit ausführlicher
         .bounce-dot {
             width: 8px;
             height: 8px;
-            border-radius: 50%;
-            background-color: #2563eb;
+            borderRadius: 50%;
+            backgroundColor: #2563eb;
             animation: bounce 1.4s infinite ease-in-out both;
         }
 

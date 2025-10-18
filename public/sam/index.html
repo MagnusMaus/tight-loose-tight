@@ -244,26 +244,46 @@ JOBEMPFEHLUNGEN:
 
             // ZENTRALE FUNKTION: Verarbeitet Sam's Response (mit oder ohne TRIGGER_SEARCH)
             const processSamResponse = async (assistantMessage, updatedMessages) => {
-                console.log('📥 Processing Sam response');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('📥 DEBUG: processSamResponse called');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('📝 FULL SAM RESPONSE:');
+                console.log(assistantMessage);
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                 
                 // SCHRITT 1: Check für TRIGGER_SEARCH (Priorität!)
                 const searchTrigger = assistantMessage.match(/\[TRIGGER_SEARCH:\s*(\{[\s\S]*?\})\s*\]/);
                 
+                console.log('🔍 DEBUG: Checking for TRIGGER_SEARCH...');
+                console.log('   Found:', searchTrigger ? 'YES ✅' : 'NO ❌');
+                
                 if (searchTrigger) {
-                    console.log('🔍 TRIGGER_SEARCH detected!');
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('🔍 DEBUG: TRIGGER_SEARCH detected!');
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('📋 Raw JSON string:', searchTrigger[1]);
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    
                     try {
                         const searchParams = JSON.parse(searchTrigger[1]);
-                        console.log('✅ Search params:', searchParams);
+                        console.log('✅ Parsed successfully:', searchParams);
                         
                         // Entferne TRIGGER_SEARCH aus Text
                         const cleanMessage = assistantMessage.replace(/\[TRIGGER_SEARCH:\s*\{[\s\S]*?\}\s*\]/g, '').trim();
                         
+                        console.log('📝 Text BEFORE TRIGGER_SEARCH:');
+                        console.log(cleanMessage || '(empty)');
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        
                         // Zeige Sam's Nachricht (ohne TRIGGER_SEARCH)
                         if (cleanMessage) {
+                            console.log('💬 Adding clean message to chat');
                             setMessages(prev => [...prev, { role: 'assistant', content: cleanMessage }]);
                         }
                         
                         setIsLoading(false);
+                        
+                        console.log('🚀 Starting job search with query:', searchParams.query, 'location:', searchParams.location);
                         
                         // Starte Job-Suche
                         await searchJobs(searchParams.query, searchParams.location, updatedMessages, 0, new Set());
@@ -291,18 +311,34 @@ JOBEMPFEHLUNGEN:
                 }
                 
                 // SCHRITT 2: Check für JOB_CARD
+                console.log('🔍 DEBUG: Checking for JOB_CARD...');
                 const parsed = parseJobCard(assistantMessage);
+                console.log('   Found:', parsed ? 'YES ✅' : 'NO ❌');
+                
                 if (parsed) {
-                    console.log('📋 Job card detected');
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('📋 DEBUG: JOB_CARD detected and parsed!');
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('💼 Job:', parsed.jobData.title);
+                    console.log('🏢 Company:', parsed.jobData.company);
+                    console.log('📍 Location:', parsed.jobData.location);
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    
                     setJobCards(prev => [...prev, { ...parsed.jobData, id: Date.now() }]);
                     if (parsed.cleanText) {
+                        console.log('💬 Adding clean text before card:', parsed.cleanText.substring(0, 100) + '...');
                         setMessages(prev => [...prev, { role: 'assistant', content: parsed.cleanText }]);
                     }
                     return true;
                 }
                 
                 // SCHRITT 3: Normaler Text
-                console.log('💬 Normal message');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('💬 DEBUG: Normal message (no TRIGGER_SEARCH or JOB_CARD)');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('📝 Message content:', assistantMessage.substring(0, 200) + '...');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                
                 setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
                 return true;
             };
@@ -443,7 +479,13 @@ JOBEMPFEHLUNGEN:
                     }
                     
                     // Jobs gefunden! Sende an Sam zur Bewertung
-                    console.log(`📤 Sending ${foundJobs.jobs.length} jobs to Sam for analysis`);
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('📤 DEBUG: Sending jobs to Sam for ANALYSIS');
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log(`   Jobs found: ${foundJobs.jobs.length}`);
+                    console.log(`   Query: "${foundJobs.query}"`);
+                    console.log(`   Location: "${foundJobs.location}"`);
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                     
                     const jobsContext = `[SYSTEM: JOB-ANALYSE-MODUS]
 
@@ -624,6 +666,13 @@ Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
             };
 
             const handleJobAction = async (jobId, action) => {
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('🎬 DEBUG: handleJobAction called');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('   Action:', action);
+                console.log('   Job ID:', jobId);
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                
                 const job = jobCards.find(j => j.id === jobId);
                 if (!job) return;
 
@@ -632,6 +681,7 @@ Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
                     userResponse = `Ich möchte mich für "${job.title}" bewerben.`;
                     if (job.applyUrl) window.open(job.applyUrl, '_blank');
                 } else if (action === 'save') {
+                    console.log('💾 DEBUG: User clicked SAVE button - expecting TRIGGER_SEARCH in response!');
                     setSavedJobs(prev => {
                         if (prev.find(j => j.id === jobId)) return prev;
                         return [...prev, job];
@@ -641,6 +691,8 @@ Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
                     userResponse = `"${job.title}" passt nicht.`;
                 }
 
+                console.log('📤 DEBUG: Sending to Sam:', userResponse);
+                
                 setJobCards(prev => prev.filter(j => j.id !== jobId));
 
                 const userMessage = { role: 'user', content: userResponse };
@@ -661,6 +713,12 @@ Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
 
                     const data = await response.json();
                     const assistantMessage = data.content[0].text;
+                    
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('📨 DEBUG: Sam response after handleJobAction:');
+                    console.log('   Context: After user clicked "' + action + '"');
+                    console.log('   Expected: TRIGGER_SEARCH (if save/reject) or normal text (if apply)');
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                     
                     // Nutze zentrale Verarbeitungsfunktion!
                     // WICHTIG: processSamResponse fügt die assistant message hinzu - wir tun das NICHT hier!

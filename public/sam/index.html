@@ -91,6 +91,7 @@
             const [showSavedJobs, setShowSavedJobs] = useState(false);
             const [isSearchingJobs, setIsSearchingJobs] = useState(false);
             const [isUploadingCV, setIsUploadingCV] = useState(false);
+            const [shownJobUrls, setShownJobUrls] = useState(new Set()); // ✨ FIX 1: Trackt bereits gezeigte Jobs
             const messagesEndRef = useRef(null);
             const fileInputRef = useRef(null);
 
@@ -468,13 +469,34 @@ JOBEMPFEHLUNGEN:
                                 console.log(`📊 Result: ${data.total || 0} jobs found`);
                                 
                                 if (data.jobs && data.jobs.length > 0) {
-                                    console.log(`🎉 SUCCESS! Found ${data.jobs.length} jobs!`);
-                                    foundJobs = {
-                                        jobs: data.jobs,
-                                        query: queryVariant,
-                                        location: locationTier.location
-                                    };
-                                    break; // Erfolg - stop die innere Schleife
+                                    // ✨ FIX 1: Filtere bereits gezeigte Jobs SOFORT
+                                    console.log(`   📋 Total jobs from API: ${data.jobs.length}`);
+                                    console.log(`   🔍 Already shown jobs: ${shownJobUrls.size}`);
+                                    
+                                    const newJobs = data.jobs.filter(job => {
+                                        const jobKey = job.url || `${job.title}_${job.company}`;
+                                        const isNew = !shownJobUrls.has(jobKey);
+                                        if (!isNew) {
+                                            console.log(`   ⏭️  Skipping already shown: "${job.title}" at ${job.company}`);
+                                        }
+                                        return isNew;
+                                    });
+                                    
+                                    console.log(`   ✨ New jobs after filtering: ${newJobs.length}`);
+                                    
+                                    // Nur wenn NEUE Jobs nach Filterung -> als Erfolg werten
+                                    if (newJobs.length > 0) {
+                                        console.log(`🎉 SUCCESS! Found ${newJobs.length} NEW jobs!`);
+                                        foundJobs = {
+                                            jobs: newJobs,
+                                            query: queryVariant,
+                                            location: locationTier.location
+                                        };
+                                        break; // Erfolg - stop die innere Schleife
+                                    } else {
+                                        console.log('⚠️  All jobs were already shown - continuing search...');
+                                        // Kein break - weitermachen mit nächster Kombination
+                                    }
                                 } else {
                                     console.log('📭 No jobs, trying next combination...');
                                 }
@@ -591,6 +613,11 @@ Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
                             return [...prev, newCard];
                         });
                         
+                        // ✨ FIX 1: Tracke diese Job-URL als "gezeigt"
+                        const jobKey = parsed.jobData.applyUrl || parsed.jobData.url || `${parsed.jobData.title}_${parsed.jobData.company}`;
+                        setShownJobUrls(prev => new Set([...prev, jobKey]));
+                        console.log(`✅ Added to shown jobs: "${parsed.jobData.title}" (Total shown: ${shownJobUrls.size + 1})`);
+                        
                         if (parsed.cleanText) {
                             console.log('💬 Adding Sam\'s analysis message to chat');
                             setMessages(prev => [...prev, { role: 'assistant', content: parsed.cleanText }]);
@@ -598,13 +625,26 @@ Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
                         console.log('✅ JOB_CARD successfully added to UI!');
                         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                     } else {
+                        // ✨ FIX 2: Check ob Sam einen TRIGGER_SEARCH zurückgegeben hat!
                         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                         console.log('⚠️  NO JOB_CARD FOUND in response!');
                         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                        console.log('📝 Adding Sam\'s message as normal text (no card)');
-                        console.log('Message preview:', assistantMessage.substring(0, 200) + '...');
-                        setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
-                        console.log('⚠️  This is unexpected - Sam should have created a JOB_CARD!');
+                        
+                        // Check ob Response einen TRIGGER_SEARCH enthält
+                        if (assistantMessage.includes('[TRIGGER_SEARCH:')) {
+                            console.log('🔍 Response contains TRIGGER_SEARCH - Sam wants to search differently!');
+                            console.log('📝 Processing TRIGGER_SEARCH via processSamResponse...');
+                            
+                            // WICHTIG: Nutze processSamResponse um TRIGGER_SEARCH richtig zu verarbeiten!
+                            const messagesWithResponse = [...updatedMessages, { role: 'assistant', content: assistantMessage }];
+                            await processSamResponse(assistantMessage, messagesWithResponse);
+                            console.log('✅ TRIGGER_SEARCH processed successfully!');
+                        } else {
+                            console.log('📝 Adding Sam\'s message as normal text (no card, no TRIGGER_SEARCH)');
+                            console.log('Message preview:', assistantMessage.substring(0, 200) + '...');
+                            setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
+                            console.log('⚠️  This is unexpected - Sam should have created a JOB_CARD!');
+                        }
                         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                     }
                     

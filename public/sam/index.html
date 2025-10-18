@@ -228,16 +228,35 @@ JOBEMPFEHLUNGEN:
             };
 
             const parseJobCard = (text) => {
+                console.log('🔍 parseJobCard() called');
+                console.log('   Input length:', text.length, 'chars');
+                
                 const jobMatch = text.match(/\[JOB_CARD:\s*(\{[\s\S]*?\})\s*\]/);
-                if (!jobMatch) return null;
+                
+                if (!jobMatch) {
+                    console.log('   ❌ No [JOB_CARD:{...}] pattern found in text');
+                    console.log('   First 200 chars:', text.substring(0, 200));
+                    return null;
+                }
+                
+                console.log('   ✅ [JOB_CARD:{...}] pattern found!');
+                console.log('   Raw JSON:', jobMatch[1].substring(0, 100) + '...');
 
                 try {
                     const jsonString = jobMatch[1].trim();
                     const jobData = JSON.parse(jsonString);
+                    console.log('   ✅ JSON parsed successfully!');
+                    console.log('   Job title:', jobData.title);
+                    console.log('   Company:', jobData.company);
+                    console.log('   Fit score:', jobData.fitScore);
+                    
                     const cleanText = text.replace(/\[JOB_CARD:\s*\{[\s\S]*?\}\s*\]/g, '').trim();
+                    console.log('   Clean text length:', cleanText.length, 'chars');
+                    
                     return { jobData, cleanText };
                 } catch (e) {
-                    console.error('❌ Error parsing job card:', e);
+                    console.error('   ❌ Error parsing job card JSON:', e);
+                    console.error('   Raw JSON string:', jobMatch[1]);
                     return null;
                 }
             };
@@ -523,6 +542,7 @@ Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
                         content: jobsContext
                     }];
 
+                    console.log('🌐 Calling Sam API for job analysis...');
                     const samResponse = await fetch('/.netlify/functions/chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -531,25 +551,78 @@ Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
                             system: getSystemPrompt()
                         })
                     });
+                    console.log('✅ API Response received! Status:', samResponse.status);
+
+                    if (!samResponse.ok) {
+                        console.error('❌ API Response NOT OK:', samResponse.status, samResponse.statusText);
+                        throw new Error(`API returned ${samResponse.status}`);
+                    }
 
                     const samData = await samResponse.json();
+                    console.log('📦 Response JSON parsed successfully');
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('🤖 SAM\'S ANALYSIS RESPONSE:');
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    
                     const assistantMessage = samData.content[0].text;
+                    console.log(assistantMessage);
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('📏 Response length:', assistantMessage.length, 'characters');
+                    console.log('🔍 Checking if response contains JOB_CARD...');
 
                     const parsed = parseJobCard(assistantMessage);
+                    console.log('🎯 parseJobCard result:', parsed ? 'FOUND JOB_CARD ✅' : 'NO JOB_CARD ❌');
+                    
                     if (parsed) {
-                        setJobCards(prev => [...prev, { ...parsed.jobData, id: Date.now() }]);
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        console.log('✨ Creating JOB_CARD!');
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        console.log('📋 Job Data:', JSON.stringify(parsed.jobData, null, 2));
+                        console.log('💬 Clean Text:', parsed.cleanText ? parsed.cleanText.substring(0, 100) + '...' : '(none)');
+                        
+                        const newCard = { ...parsed.jobData, id: Date.now() };
+                        console.log('🆔 Card ID:', newCard.id);
+                        console.log('🏢 Job Title:', newCard.title);
+                        console.log('🔗 Job URL:', newCard.applyUrl || newCard.url || '(no URL)');
+                        
+                        setJobCards(prev => {
+                            console.log('📊 Current jobCards count:', prev.length);
+                            console.log('➕ Adding new card, new count will be:', prev.length + 1);
+                            return [...prev, newCard];
+                        });
+                        
                         if (parsed.cleanText) {
+                            console.log('💬 Adding Sam\'s analysis message to chat');
                             setMessages(prev => [...prev, { role: 'assistant', content: parsed.cleanText }]);
                         }
+                        console.log('✅ JOB_CARD successfully added to UI!');
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                     } else {
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        console.log('⚠️  NO JOB_CARD FOUND in response!');
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        console.log('📝 Adding Sam\'s message as normal text (no card)');
+                        console.log('Message preview:', assistantMessage.substring(0, 200) + '...');
                         setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
+                        console.log('⚠️  This is unexpected - Sam should have created a JOB_CARD!');
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                     }
                     
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('🏁 searchJobs() completed successfully!');
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                     setIsSearchingJobs(false);
                     return foundJobs.jobs;
 
                 } catch (error) {
-                    console.error('❌ Critical search error:', error);
+                    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.error('❌ CRITICAL ERROR in searchJobs!');
+                    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.error('Error type:', error.name);
+                    console.error('Error message:', error.message);
+                    console.error('Error stack:', error.stack);
+                    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    
                     setMessages(prev => [...prev, {
                         role: 'assistant',
                         content: 'Technisches Problem bei der Suche. Lass uns es nochmal versuchen! 🔧'

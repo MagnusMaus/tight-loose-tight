@@ -127,17 +127,18 @@ In welcher beruflichen Situation befindest du dich gerade?`;
             const getSystemPrompt = () => {
                 return `Du bist Sam, ein fortschrittlicher KI-Karriere-Coach und Recruiting-Experte.
 
-WICHTIG: Du hast Zugriff auf die Arbeitsagentur Jobbörse - die GRÖßTE deutsche Stellendatenbank.
+WICHTIG: Du hast Zugriff auf die Arbeitsagentur Jobbörse - die GRÖßTE deutsche Stellendatenbank mit INTELLIGENTER GESTAFFELTER SUCHE!
 
 JOB-SUCHE BEST PRACTICES:
-- Verwende BREITE Suchbegriffe: "Manager", "Director", "Lead"
-- Location: Deutsche Städte ("Berlin", "München") oder LEER LASSEN für ganz Deutschland
-- NIEMALS "Deutschland" oder "Germany" als Location - nur Städte oder leer!
+- Verwende SPEZIFISCHE Suchbegriffe basierend auf dem Profil: "Operations Director", "Head of Marketing", etc.
+- Location: IMMER eine konkrete deutsche Stadt angeben ("Berlin", "München", "Hamburg", "Hannover")
+- NIEMALS location leer lassen - die API verlangt konkrete Städte!
+- Das System erweitert automatisch: spezifisch → breit, lokal → deutschlandweit
 
 PROAKTIVES VERHALTEN:
-- Wenn du Jobs suchst, sage NUR die ART der Position
-- Erwähne KEINE spezifischen Suchbegriffe
-- Probiere automatisch alternative Suchbegriffe bei 0 Ergebnissen
+- Starte mit psychografisch präzisen Queries - das System macht sie automatisch breiter wenn nötig
+- Sage dem Nutzer NICHT, dass du suchst oder was du suchst
+- Das System probiert automatisch Query-Varianten und verschiedene Locations
 - Der Nutzer sieht nur erfolgreiche Ergebnisse
 
 CV-UPLOAD: Zeige NIEMALS rohe CV-Daten, nur persönliche Antworten.
@@ -161,11 +162,14 @@ FIT-SCORE: 50% psychografisch, 30% Skills, 20% Umfeld!
 WENN DU READY BIST FÜR JOB-SUCHE:
 
 [TRIGGER_SEARCH:{
-  "query": "Operations Manager",
-  "location": "Berlin"
+  "query": "Operations Director",
+  "location": "Hannover"
 }]
 
-WICHTIG: Bei der Job-Analyse ALLE Top-5 Jobs intern bewerten und den BESTEN auswählen!
+WICHTIG: 
+- Query sollte SPEZIFISCH sein (z.B. "COO Operations", "Head of Marketing", "Senior Developer")
+- Location muss IMMER eine konkrete Stadt sein
+- Bei der Job-Analyse ALLE Top-5 Jobs intern bewerten und den BESTEN auswählen!
 
 GESPRÄCHSFÜHRUNG:
 - Stelle NUR EINE Frage pro Nachricht
@@ -263,90 +267,147 @@ Bei "Speichern & weiter":
                 return true;
             };
 
-            const searchJobs = async (query, location, currentMessages, retryCount = 0, triedSet = new Set()) => {
-                const MAX_RETRIES = 10;
+            // ========================================
+            // NEUE INTELLIGENTE GESTAFFELTE JOB-SUCHE
+            // ========================================
+            
+            // Generiert Query-Varianten: spezifisch → breit
+            const generateQueryVariants = (query) => {
+                const variants = [query];
+                const words = query.split(' ').filter(w => w.length > 2);
                 
-                const normalizedQuery = query.toLowerCase().trim();
-                
-                if (triedSet.has(normalizedQuery) && retryCount < MAX_RETRIES) {
-                    console.log(`⏭️ Skipping duplicate: "${query}"`);
-                    return null;
+                // Extrahiere Kernbegriffe und erstelle breitere Varianten
+                if (words.length >= 3) {
+                    // Z.B. "Operations Director Manager" → "Operations Director" → "Operations Manager" → "Director" → "Manager"
+                    variants.push(words.slice(0, 2).join(' '));
+                    variants.push(words[0] + ' ' + words[words.length - 1]);
+                    variants.push(words[0]);
+                    variants.push(words[words.length - 1]);
+                } else if (words.length === 2) {
+                    // Z.B. "Operations Director" → "Operations Manager" → "Operations" → "Director"
+                    variants.push(words[0] + ' Manager');
+                    variants.push(words[0]);
+                    variants.push(words[1]);
+                } else if (words.length === 1) {
+                    // Single word - add "Manager" variant
+                    variants.push(words[0] + ' Manager');
                 }
                 
-                triedSet.add(normalizedQuery);
+                // Remove duplicates und behalte Reihenfolge
+                const unique = [...new Set(variants)];
+                console.log('📊 Query variants:', unique);
+                return unique;
+            };
+            
+            // Generiert Location-Tiers: lokal → regional → überregional
+            const generateLocationTiers = (userRegion = 'Hannover') => {
+                const tiers = [
+                    // Runde 1: Nutzer-Region lokal
+                    { location: userRegion, radius: 50, label: 'Lokal' },
+                    { location: userRegion, radius: 100, label: 'Regional' },
+                    
+                    // Runde 2: Große Städte für deutschlandweite Abdeckung
+                    { location: 'Berlin', radius: 100, label: 'Berlin Region' },
+                    { location: 'München', radius: 100, label: 'München Region' },
+                    { location: 'Hamburg', radius: 100, label: 'Hamburg Region' },
+                    
+                    // Runde 3: Erweiterte Suche
+                    { location: 'Frankfurt', radius: 150, label: 'Frankfurt erweitert' },
+                    { location: 'Köln', radius: 150, label: 'Köln erweitert' },
+                    
+                    // Runde 4: Garantierter Fallback
+                    { location: 'Berlin', radius: 200, label: 'Berlin deutschlandweit' }
+                ];
+                
+                console.log('📍 Location tiers:', tiers);
+                return tiers;
+            };
+            
+            // Einzelner API-Call zur Arbeitsagentur
+            const searchJobsAPI = async (query, location, radius) => {
+                const response = await fetch('/.netlify/functions/search-jobs-arbeitsagentur', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: query,
+                        location: location,
+                        radius: radius,
+                        size: 25
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+                
+                return await response.json();
+            };
+            
+            // Hauptfunktion: Intelligente gestaffelte Suche
+            const searchJobs = async (query, location, currentMessages, retryCount = 0, triedSet = new Set()) => {
+                console.log('🎯 Starting intelligent tiered search for:', query);
+                
                 setIsSearchingJobs(true);
-                console.log(`🔍 Search attempt ${retryCount + 1}/${MAX_RETRIES}:`, { query, location });
                 
                 try {
-                    const response = await fetch('/.netlify/functions/search-jobs-arbeitsagentur', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            query: query,
-                            location: location || '',
-                            radius: 100,
-                            size: 25
-                        })
-                    });
-
-                    const data = await response.json();
-                    console.log(`✅ Attempt ${retryCount + 1} response:`, data.total, 'jobs');
+                    // Generiere Query-Varianten und Location-Tiers
+                    const queryVariants = generateQueryVariants(query);
+                    const userRegion = location || 'Hannover'; // Default zu Hannover wenn keine Location
+                    const locationTiers = generateLocationTiers(userRegion);
                     
-                    if (!data.jobs || data.jobs.length === 0) {
-                        console.warn(`⚠️ No jobs found for "${query}"`);
+                    let attemptNumber = 0;
+                    let foundJobs = null;
+                    
+                    // Durchlaufe alle Kombinationen: Query-Varianten × Location-Tiers
+                    for (const queryVariant of queryVariants) {
+                        if (foundJobs) break; // Stop wenn Jobs gefunden
                         
-                        if (retryCount < MAX_RETRIES - 1) {
-                            console.log('🔄 Asking Sam for alternative...');
+                        for (const locationTier of locationTiers) {
+                            attemptNumber++;
                             
-                            const retryPrompt = `[SYSTEM: Suche nach "${query}" hat 0 Ergebnisse. Dies ist Versuch ${retryCount + 1}/${MAX_RETRIES}. 
-
-Bereits versucht: ${Array.from(triedSet).join(', ')}
-
-Wähle einen ANDEREN, BREITEREN Suchbegriff basierend auf dem Profil. 
-
-Antworte NUR mit TRIGGER_SEARCH - OHNE dem Nutzer zu sagen dass die Suche fehlgeschlagen ist.]`;
-
-                            const updatedMessages = [...currentMessages, {
-                                role: 'user',
-                                content: retryPrompt
-                            }];
-
-                            const samResponse = await fetch('/.netlify/functions/chat', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    messages: updatedMessages,
-                                    system: getSystemPrompt()
-                                })
-                            });
-
-                            const samData = await samResponse.json();
-                            const assistantMessage = samData.content[0].text;
+                            console.log(`🔍 Attempt ${attemptNumber}: "${queryVariant}" in ${locationTier.location} (${locationTier.radius}km) [${locationTier.label}]`);
                             
-                            const newSearchTrigger = assistantMessage.match(/\[TRIGGER_SEARCH:\s*(\{[\s\S]*?\})\s*\]/);
-                            if (newSearchTrigger) {
-                                const newSearchParams = JSON.parse(newSearchTrigger[1]);
-                                console.log('🎯 Sam suggests:', newSearchParams);
-                                setIsSearchingJobs(false);
-                                return await searchJobs(newSearchParams.query, newSearchParams.location, currentMessages, retryCount + 1, triedSet);
+                            try {
+                                const data = await searchJobsAPI(queryVariant, locationTier.location, locationTier.radius);
+                                
+                                console.log(`📊 Result: ${data.total || 0} jobs found`);
+                                
+                                if (data.jobs && data.jobs.length > 0) {
+                                    console.log(`🎉 SUCCESS! Found ${data.jobs.length} jobs!`);
+                                    foundJobs = {
+                                        jobs: data.jobs,
+                                        query: queryVariant,
+                                        location: locationTier.location
+                                    };
+                                    break; // Erfolg - stop die innere Schleife
+                                } else {
+                                    console.log('📭 No jobs, trying next combination...');
+                                }
+                                
+                            } catch (error) {
+                                console.error(`❌ Error in attempt ${attemptNumber}:`, error);
+                                // Continue mit nächster Kombination
                             }
                         }
-                        
-                        console.error('❌ All retries exhausted');
+                    }
+                    
+                    // Check ob Jobs gefunden wurden
+                    if (!foundJobs) {
+                        console.error('❌ All combinations exhausted - no jobs found');
                         setMessages(prev => [...prev, {
                             role: 'assistant',
-                            content: `Ich habe intensiv gesucht, aber der Markt ist aktuell eng. Lass uns das Suchprofil anpassen - andere Regionen oder verwandte Rollen einbeziehen?`
+                            content: `Ich habe sehr gründlich gesucht, aber leider keine passenden Stellen gefunden. Lass uns gemeinsam überlegen: Könnten wir das Suchprofil etwas anpassen? Vielleicht verwandte Rollen oder andere Branchen einbeziehen? 🤔`
                         }]);
                         setIsSearchingJobs(false);
                         return null;
                     }
                     
-                    // Jobs gefunden! 
-                    console.log(`🎉 Found ${data.jobs.length} jobs!`);
+                    // Jobs gefunden! Sende an Sam zur Bewertung
+                    console.log(`📤 Sending ${foundJobs.jobs.length} jobs to Sam for analysis`);
                     
-                    const jobsContext = `Hier sind ${data.jobs.length} Jobs von der Bundesagentur für "${query}"${location ? ` in "${location}"` : ''}:
+                    const jobsContext = `Hier sind ${foundJobs.jobs.length} Jobs von der Bundesagentur für "${foundJobs.query}" in "${foundJobs.location}":
 
-${data.jobs.slice(0, 5).map((job, i) => `
+${foundJobs.jobs.slice(0, 5).map((job, i) => `
 Job ${i + 1}:
 - Titel: ${job.title}
 - Firma: ${job.company}
@@ -387,10 +448,10 @@ Erstelle JOB_CARD für den Job mit HÖCHSTEM FIT mit Begründung warum er zum Pe
                     }
                     
                     setIsSearchingJobs(false);
-                    return data.jobs;
+                    return foundJobs.jobs;
 
                 } catch (error) {
-                    console.error('❌ Search error:', error);
+                    console.error('❌ Critical search error:', error);
                     setMessages(prev => [...prev, {
                         role: 'assistant',
                         content: 'Technisches Problem bei der Suche. Lass uns es nochmal versuchen! 🔧'

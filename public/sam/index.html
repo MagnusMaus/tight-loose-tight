@@ -245,8 +245,23 @@ Bei "Speichern & weiter":
                         return true; // Verarbeitet!
                         
                     } catch (e) {
-                        console.error('❌ Error parsing TRIGGER_SEARCH:', e);
-                        // Fahre fort mit normaler Verarbeitung
+                        console.error('❌ Error parsing TRIGGER_SEARCH JSON:', e);
+                        console.error('Raw JSON:', searchTrigger[1]);
+                        
+                        // WICHTIG: Auch bei Parse-Error den TRIGGER_SEARCH entfernen und cleaned message anzeigen!
+                        const cleanMessage = assistantMessage.replace(/\[TRIGGER_SEARCH:\s*\{[\s\S]*?\}\s*\]/g, '').trim();
+                        if (cleanMessage) {
+                            setMessages(prev => [...prev, { role: 'assistant', content: cleanMessage }]);
+                        }
+                        
+                        // Zeige Fehlermeldung
+                        setMessages(prev => [...prev, {
+                            role: 'assistant',
+                            content: 'Entschuldige, da gab es ein technisches Problem. Lass uns manuell weitersuchen - welche Art von Position interessiert dich am meisten? 🤔'
+                        }]);
+                        
+                        setIsLoading(false);
+                        return true; // Verhindere dass der rohe TRIGGER_SEARCH angezeigt wird!
                     }
                 }
                 
@@ -589,6 +604,7 @@ Erstelle JOB_CARD für den Job mit HÖCHSTEM FIT mit Begründung warum er zum Pe
 
                 const userMessage = { role: 'user', content: userResponse };
                 const updatedMessages = [...messages, userMessage];
+                // Zeige user message sofort
                 setMessages(updatedMessages);
                 setIsLoading(true);
 
@@ -606,13 +622,13 @@ Erstelle JOB_CARD für den Job mit HÖCHSTEM FIT mit Begründung warum er zum Pe
                     const assistantMessage = data.content[0].text;
                     
                     // Nutze zentrale Verarbeitungsfunktion!
-                    // updatedMessages muss die Assistant-Message enthalten für searchJobs!
+                    // WICHTIG: processSamResponse fügt die assistant message hinzu - wir tun das NICHT hier!
                     const messagesWithResponse = [...updatedMessages, { role: 'assistant', content: assistantMessage }];
                     await processSamResponse(assistantMessage, messagesWithResponse);
 
                 } catch (error) {
                     console.error('❌ Error:', error);
-                    setMessages([...updatedMessages, {
+                    setMessages(prev => [...prev, {
                         role: 'assistant',
                         content: 'Fehler. Lass uns weitermachen! 🔧'
                     }]);

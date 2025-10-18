@@ -507,7 +507,9 @@ Erstelle JOB_CARD für den Job mit HÖCHSTEM FIT mit Begründung warum er zum Pe
                         const assistantMessage = samData.content[0].text;
 
                         // WICHTIG: Nutze zentrale Verarbeitungsfunktion!
-                        await processSamResponse(assistantMessage, updatedMessages);
+                        // updatedMessages muss die Assistant-Message enthalten für searchJobs!
+                        const messagesWithResponse = [...updatedMessages, { role: 'assistant', content: assistantMessage }];
+                        await processSamResponse(assistantMessage, messagesWithResponse);
                         setIsLoading(false);
                         
                     } catch (error) {
@@ -550,7 +552,9 @@ Erstelle JOB_CARD für den Job mit HÖCHSTEM FIT mit Begründung warum er zum Pe
                     const assistantMessage = data.content[0].text;
 
                     // Nutze zentrale Verarbeitungsfunktion!
-                    await processSamResponse(assistantMessage, updatedMessages);
+                    // updatedMessages muss die Assistant-Message enthalten für searchJobs!
+                    const messagesWithResponse = [...updatedMessages, { role: 'assistant', content: assistantMessage }];
+                    await processSamResponse(assistantMessage, messagesWithResponse);
 
                 } catch (error) {
                     console.error('❌ Error:', error);
@@ -602,7 +606,9 @@ Erstelle JOB_CARD für den Job mit HÖCHSTEM FIT mit Begründung warum er zum Pe
                     const assistantMessage = data.content[0].text;
                     
                     // Nutze zentrale Verarbeitungsfunktion!
-                    await processSamResponse(assistantMessage, updatedMessages);
+                    // updatedMessages muss die Assistant-Message enthalten für searchJobs!
+                    const messagesWithResponse = [...updatedMessages, { role: 'assistant', content: assistantMessage }];
+                    await processSamResponse(assistantMessage, messagesWithResponse);
 
                 } catch (error) {
                     console.error('❌ Error:', error);

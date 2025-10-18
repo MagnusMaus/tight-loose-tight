@@ -143,7 +143,39 @@ PROAKTIVES VERHALTEN:
 
 CV-UPLOAD: Zeige NIEMALS rohe CV-Daten, nur persönliche Antworten.
 
-WENN DU EINEN JOB EMPFEHLEN MÖCHTEST:
+====================================
+KRITISCHE REGEL: TRIGGER_SEARCH vs JOB_CARD
+====================================
+
+Es gibt NUR ZWEI Situationen wo du diese Tags verwendest:
+
+1️⃣ TRIGGER_SEARCH - VERWENDE NUR WENN:
+   ✅ Du bereit bist eine NEUE Job-Suche zu starten
+   ✅ User sagt "Speichern & weiter" oder "Zeige mir weitere Stellen"
+   ✅ User lehnt einen Job ab
+   ✅ Du NOCH KEINE Jobs zur Analyse bekommen hast
+
+   ❌ NIEMALS verwenden wenn du bereits Jobs zur Analyse bekommen hast!
+
+2️⃣ JOB_CARD - VERWENDE NUR WENN:
+   ✅ Du hast gerade Jobs ZUR ANALYSE bekommen (System sendet dir 5 Jobs)
+   ✅ Du sollst den BESTEN Job empfehlen
+   ✅ Du siehst einen Job-Titel, Firma, Beschreibung in der Nachricht
+   
+   ❌ NIEMALS zusammen mit TRIGGER_SEARCH verwenden!
+
+====================================
+
+WENN DU JOBS ZUR ANALYSE BEKOMMST:
+- Das System sendet dir 5 Jobs mit: Titel, Firma, Ort, Beschreibung
+- Du MUSST dann SOFORT eine JOB_CARD erstellen
+- Bewerte ALLE 5 Jobs intern (50% psychografisch!)
+- Wähle den BESTEN aus
+- Erstelle NUR eine JOB_CARD - KEINEN TRIGGER_SEARCH!
+
+Format:
+
+[Deine persönliche Analyse warum dieser Job passt]
 
 [JOB_CARD:{
   "title": "Job Titel",
@@ -157,19 +189,21 @@ WENN DU EINEN JOB EMPFEHLEN MÖCHTEST:
   "applyUrl": "https://..."
 }]
 
-FIT-SCORE: 50% psychografisch, 30% Skills, 20% Umfeld!
+WENN USER "SPEICHERN & WEITER" SAGT:
+- User will mehr Optionen sehen
+- Erstelle NEUEN TRIGGER_SEARCH (KEINE JOB_CARD!)
+- Query kann ähnlich sein oder leicht variieren
 
-WENN DU READY BIST FÜR JOB-SUCHE:
+Format:
+
+Super! Ich schaue nach weiteren Positionen. 🔍
 
 [TRIGGER_SEARCH:{
-  "query": "Operations Director",
-  "location": "Hannover"
+  "query": "...",
+  "location": "..."
 }]
 
-WICHTIG: 
-- Query sollte SPEZIFISCH sein (z.B. "COO Operations", "Head of Marketing", "Senior Developer")
-- Location muss IMMER eine konkrete Stadt sein
-- Bei der Job-Analyse ALLE Top-5 Jobs intern bewerten und den BESTEN auswählen!
+====================================
 
 GESPRÄCHSFÜHRUNG:
 - Stelle NUR EINE Frage pro Nachricht
@@ -190,16 +224,7 @@ JOBEMPFEHLUNGEN:
 - IMMER nur EINEN Job pro Nachricht
 - Erkläre psychografischen Fit ausführlich
 - Warte auf Feedback
-- Bei "Speichern & weiter": SOFORT neue Suche mit TRIGGER_SEARCH
-- Du hörst NUR auf wenn User EXPLIZIT stoppt
-
-Bei "Speichern & weiter":
-"Super! Ich schaue nach weiteren Positionen. 🔍
-
-[TRIGGER_SEARCH:{
-  "query": "...",
-  "location": "..."
-}]"`;
+- Du hörst NUR auf wenn User EXPLIZIT stoppt`;
             };
 
             const parseJobCard = (text) => {
@@ -420,7 +445,9 @@ Bei "Speichern & weiter":
                     // Jobs gefunden! Sende an Sam zur Bewertung
                     console.log(`📤 Sending ${foundJobs.jobs.length} jobs to Sam for analysis`);
                     
-                    const jobsContext = `Hier sind ${foundJobs.jobs.length} Jobs von der Bundesagentur für "${foundJobs.query}" in "${foundJobs.location}":
+                    const jobsContext = `[SYSTEM: JOB-ANALYSE-MODUS]
+
+Hier sind ${foundJobs.jobs.length} Jobs von der Bundesagentur für "${foundJobs.query}" in "${foundJobs.location}":
 
 ${foundJobs.jobs.slice(0, 5).map((job, i) => `
 Job ${i + 1}:
@@ -431,9 +458,23 @@ Job ${i + 1}:
 - Link: ${job.url}
 `).join('\n')}
 
-KRITISCH: Bewerte ALLE 5 Jobs intern, berechne Fit-Scores (50% psychografisch!), wähle den BESTEN aus.
+DEINE AUFGABE:
+1. Bewerte ALLE 5 Jobs intern (50% psychografisch, 30% Skills, 20% Umfeld)
+2. Wähle den BESTEN Job basierend auf dem Persönlichkeitsprofil
+3. Erstelle EINE JOB_CARD für diesen Job
 
-Erstelle JOB_CARD für den Job mit HÖCHSTEM FIT mit Begründung warum er zum Persönlichkeitsprofil passt.`;
+WICHTIG: 
+✅ Erstelle NUR eine JOB_CARD
+❌ KEINEN TRIGGER_SEARCH verwenden!
+❌ Dieser Prompt bedeutet NICHT "suche weitere Jobs"
+❌ Du musst NUR den besten der 5 gegebenen Jobs empfehlen
+
+Format:
+[Deine persönliche Analyse des Jobs - 2-3 Sätze]
+
+[JOB_CARD:{...}]
+
+Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
 
                     const updatedMessages = [...currentMessages, {
                         role: 'user',

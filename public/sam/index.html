@@ -91,7 +91,12 @@
             const [showSavedJobs, setShowSavedJobs] = useState(false);
             const [isSearchingJobs, setIsSearchingJobs] = useState(false);
             const [isUploadingCV, setIsUploadingCV] = useState(false);
-            const [shownJobUrls, setShownJobUrls] = useState(new Set()); // ✨ FIX 1: Trackt bereits gezeigte Jobs
+            
+            // 🔧 FIX: Verwende useRef statt nur State für shown jobs
+            // Damit haben wir SOFORT den aktuellen Wert, auch in async Funktionen!
+            const shownJobUrlsRef = useRef(new Set());
+            const [shownJobUrls, setShownJobUrls] = useState(new Set());
+            
             const messagesEndRef = useRef(null);
             const fileInputRef = useRef(null);
 
@@ -104,316 +109,172 @@
             }, [messages, jobCards]);
 
             useEffect(() => {
-                const greeting = getGreeting();
+                // Initial message
                 setMessages([{
                     role: 'assistant',
-                    content: greeting
+                    content: 'Hey! Ich bin Sam, dein KI-Karriere-Coach. Erzähl mir, welche berufliche Entwicklung du dir vorstellst, und ich helfe dir, die perfekte Stelle zu finden. 🚀'
                 }]);
             }, []);
 
-            const getGreeting = () => {
-                const hour = new Date().getHours();
-                let timeOfDay;
-                if (hour < 12) timeOfDay = 'Morgen';
-                else if (hour < 18) timeOfDay = 'Mittag';
-                else timeOfDay = 'Abend';
-
-                return `Guten ${timeOfDay}, schön, dass du da bist. Mein Name ist Sam. Ich bin hier, um dich dabei zu unterstützen, deinen nächsten Karriereschritt zu finden.
-
-Damit dieser Schritt genau zu dir passt, stelle ich dir gleich ein paar Fragen. Je offener und präziser du sie beantwortest, desto besser wird das Ergebnis. Keine Sorge! Deine Daten sind bei mir sicher. Sie sind von niemandem sonst einsehbar.
-
-In welcher beruflichen Situation befindest du dich gerade?`;
+            // Helper function zum Hinzufügen von Jobs zu "shown"
+            const addJobToShown = (jobKey) => {
+                console.log(`🔖 Adding job to shown list: "${jobKey}"`);
+                // Update BEIDE: Ref (sofort!) und State (für UI)
+                shownJobUrlsRef.current.add(jobKey);
+                setShownJobUrls(new Set(shownJobUrlsRef.current));
+                console.log(`✅ Total shown jobs: ${shownJobUrlsRef.current.size}`);
             };
 
-            const getSystemPrompt = () => {
-                return `Du bist Sam, ein fortschrittlicher KI-Karriere-Coach und Recruiting-Experte.
-
-WICHTIG: Du hast Zugriff auf die Arbeitsagentur Jobbörse - die GRÖßTE deutsche Stellendatenbank mit INTELLIGENTER GESTAFFELTER SUCHE!
-
-JOB-SUCHE BEST PRACTICES:
-- Verwende SPEZIFISCHE Suchbegriffe basierend auf dem Profil: "Operations Director", "Head of Marketing", etc.
-- Location: IMMER eine konkrete deutsche Stadt angeben ("Berlin", "München", "Hamburg", "Hannover")
-- NIEMALS location leer lassen - die API verlangt konkrete Städte!
-- Das System erweitert automatisch: spezifisch → breit, lokal → deutschlandweit
-
-PROAKTIVES VERHALTEN:
-- Starte mit psychografisch präzisen Queries - das System macht sie automatisch breiter wenn nötig
-- Sage dem Nutzer NICHT, dass du suchst oder was du suchst
-- Das System probiert automatisch Query-Varianten und verschiedene Locations
-- Der Nutzer sieht nur erfolgreiche Ergebnisse
-
-CV-UPLOAD: Zeige NIEMALS rohe CV-Daten, nur persönliche Antworten.
-
-====================================
-KRITISCHE REGEL: TRIGGER_SEARCH vs JOB_CARD
-====================================
-
-Es gibt NUR ZWEI Situationen wo du diese Tags verwendest:
-
-1️⃣ TRIGGER_SEARCH - VERWENDE NUR WENN:
-   ✅ Du bereit bist eine NEUE Job-Suche zu starten
-   ✅ User sagt "Speichern & weiter" oder "Zeige mir weitere Stellen"
-   ✅ User lehnt einen Job ab
-   ✅ Du NOCH KEINE Jobs zur Analyse bekommen hast
-
-   ❌ NIEMALS verwenden wenn du bereits Jobs zur Analyse bekommen hast!
-
-2️⃣ JOB_CARD - VERWENDE NUR WENN:
-   ✅ Du hast gerade Jobs ZUR ANALYSE bekommen (System sendet dir 5 Jobs)
-   ✅ Du sollst den BESTEN Job empfehlen
-   ✅ Du siehst einen Job-Titel, Firma, Beschreibung in der Nachricht
-   
-   ❌ NIEMALS zusammen mit TRIGGER_SEARCH verwenden!
-
-====================================
-
-WENN DU JOBS ZUR ANALYSE BEKOMMST:
-- Das System sendet dir 5 Jobs mit: Titel, Firma, Ort, Beschreibung
-- Du MUSST dann SOFORT eine JOB_CARD erstellen
-- Bewerte ALLE 5 Jobs intern (50% psychografisch!)
-- Wähle den BESTEN aus
-- Erstelle NUR eine JOB_CARD - KEINEN TRIGGER_SEARCH!
-
-Format:
-
-[Deine persönliche Analyse warum dieser Job passt]
-
-[JOB_CARD:{
-  "title": "Job Titel",
-  "company": "Firma", 
-  "location": "Ort",
-  "salary": "Gehalt",
-  "description": "2-3 Sätze",
-  "fitScore": 85,
-  "pros": ["Passt weil..."],
-  "cons": ["Beachte..."],
-  "applyUrl": "https://..."
-}]
-
-WENN USER "SPEICHERN & WEITER" SAGT:
-- User will mehr Optionen sehen
-- Erstelle NEUEN TRIGGER_SEARCH (KEINE JOB_CARD!)
-- Query kann ähnlich sein oder leicht variieren
-
-Format:
-
-Super! Ich schaue nach weiteren Positionen. 🔍
-
-[TRIGGER_SEARCH:{
-  "query": "...",
-  "location": "..."
-}]
-
-====================================
-
-GESPRÄCHSFÜHRUNG:
-- Stelle NUR EINE Frage pro Nachricht
-- Nutze Emojis angemessen
-- Frage gezielt nach für vollständiges Profil
-
-PROFILERSTELLUNG (50% des Fit-Scores!):
-1. Werte & Motivatoren
-2. Arbeitspsychologie  
-3. Umfeld-Präferenzen
-
-DREI HAUPTFRAGEN:
-1. Berufliche Situation?
-2. Berufliche Entwicklung (3-5 Jahre)?
-3. Fähigkeiten & Erfahrungen? (CV-Upload möglich)
-
-JOBEMPFEHLUNGEN:
-- IMMER nur EINEN Job pro Nachricht
-- Erkläre psychografischen Fit ausführlich
-- Warte auf Feedback
-- Du hörst NUR auf wenn User EXPLIZIT stoppt`;
+            // Helper function zum Checken ob Job schon gezeigt wurde
+            const isJobAlreadyShown = (jobKey) => {
+                return shownJobUrlsRef.current.has(jobKey);
             };
 
+            // Parse JOB_CARD aus Sam's Response
             const parseJobCard = (text) => {
                 console.log('🔍 parseJobCard() called');
-                console.log('   Input length:', text.length, 'chars');
+                console.log(`   Input length: ${text.length} chars`);
                 
-                const jobMatch = text.match(/\[JOB_CARD:\s*(\{[\s\S]*?\})\s*\]/);
-                
-                if (!jobMatch) {
+                const cardMatch = text.match(/\[JOB_CARD:(\{[\s\S]*?\})\]/);
+                if (!cardMatch) {
                     console.log('   ❌ No [JOB_CARD:{...}] pattern found in text');
                     console.log('   First 200 chars:', text.substring(0, 200));
                     return null;
                 }
                 
                 console.log('   ✅ [JOB_CARD:{...}] pattern found!');
-                console.log('   Raw JSON:', jobMatch[1].substring(0, 100) + '...');
-
+                console.log('   Raw JSON:', cardMatch[1].substring(0, 200) + '...');
+                
                 try {
-                    const jsonString = jobMatch[1].trim();
-                    const jobData = JSON.parse(jsonString);
+                    const jobData = JSON.parse(cardMatch[1]);
                     console.log('   ✅ JSON parsed successfully!');
                     console.log('   Job title:', jobData.title);
                     console.log('   Company:', jobData.company);
                     console.log('   Fit score:', jobData.fitScore);
                     
-                    const cleanText = text.replace(/\[JOB_CARD:\s*\{[\s\S]*?\}\s*\]/g, '').trim();
+                    const cleanText = text.replace(/\[JOB_CARD:[\s\S]*?\]/, '').trim();
                     console.log('   Clean text length:', cleanText.length, 'chars');
                     
                     return { jobData, cleanText };
                 } catch (e) {
-                    console.error('   ❌ Error parsing job card JSON:', e);
-                    console.error('   Raw JSON string:', jobMatch[1]);
+                    console.error('   ❌ Failed to parse JOB_CARD JSON:', e);
                     return null;
                 }
             };
 
-            // ZENTRALE FUNKTION: Verarbeitet Sam's Response (mit oder ohne TRIGGER_SEARCH)
-            const processSamResponse = async (assistantMessage, updatedMessages) => {
+            // Verarbeite Sam's Response und handle TRIGGER_SEARCH
+            const processSamResponse = async (responseText, currentMessages) => {
                 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                 console.log('📥 DEBUG: processSamResponse called');
                 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                 console.log('📝 FULL SAM RESPONSE:');
-                console.log(assistantMessage);
+                console.log(responseText);
                 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                 
-                // SCHRITT 1: Check für TRIGGER_SEARCH (Priorität!)
-                const searchTrigger = assistantMessage.match(/\[TRIGGER_SEARCH:\s*(\{[\s\S]*?\})\s*\]/);
-                
+                // Check für TRIGGER_SEARCH
                 console.log('🔍 DEBUG: Checking for TRIGGER_SEARCH...');
-                console.log('   Found:', searchTrigger ? 'YES ✅' : 'NO ❌');
+                const triggerSearchMatch = responseText.match(/\[TRIGGER_SEARCH:\s*(\{[^}]+\})\]/);
+                console.log('   Found:', triggerSearchMatch ? 'YES ✅' : 'NO ❌');
                 
-                if (searchTrigger) {
+                if (triggerSearchMatch) {
                     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                     console.log('🔍 DEBUG: TRIGGER_SEARCH detected!');
                     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                    console.log('📋 Raw JSON string:', searchTrigger[1]);
+                    console.log('📋 Raw JSON string:', triggerSearchMatch[1]);
                     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                     
                     try {
-                        const searchParams = JSON.parse(searchTrigger[1]);
-                        console.log('✅ Parsed successfully:', searchParams);
+                        const params = JSON.parse(triggerSearchMatch[1]);
+                        console.log('✅ Parsed successfully:', params);
                         
-                        // Entferne TRIGGER_SEARCH aus Text
-                        const cleanMessage = assistantMessage.replace(/\[TRIGGER_SEARCH:\s*\{[\s\S]*?\}\s*\]/g, '').trim();
-                        
+                        // Extrahiere Text VOR dem TRIGGER_SEARCH
+                        const cleanText = responseText.split('[TRIGGER_SEARCH:')[0].trim();
                         console.log('📝 Text BEFORE TRIGGER_SEARCH:');
-                        console.log(cleanMessage || '(empty)');
+                        console.log(cleanText);
                         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                         
-                        // Zeige Sam's Nachricht (ohne TRIGGER_SEARCH)
-                        if (cleanMessage) {
+                        // Zeige nur den sauberen Text (ohne den rohen TRIGGER_SEARCH Tag!)
+                        if (cleanText) {
                             console.log('💬 Adding clean message to chat');
-                            setMessages(prev => [...prev, { role: 'assistant', content: cleanMessage }]);
+                            setMessages(prev => [...prev, { role: 'assistant', content: cleanText }]);
                         }
-                        
-                        setIsLoading(false);
-                        
-                        console.log('🚀 Starting job search with query:', searchParams.query, 'location:', searchParams.location);
                         
                         // Starte Job-Suche
-                        await searchJobs(searchParams.query, searchParams.location, updatedMessages, 0, new Set());
-                        return true; // Verarbeitet!
+                        console.log('🚀 Starting job search with query:', params.query, 'location:', params.location);
+                        await searchJobs(params.query, params.location, currentMessages);
                         
                     } catch (e) {
-                        console.error('❌ Error parsing TRIGGER_SEARCH JSON:', e);
-                        console.error('Raw JSON:', searchTrigger[1]);
-                        
-                        // WICHTIG: Auch bei Parse-Error den TRIGGER_SEARCH entfernen und cleaned message anzeigen!
-                        const cleanMessage = assistantMessage.replace(/\[TRIGGER_SEARCH:\s*\{[\s\S]*?\}\s*\]/g, '').trim();
-                        if (cleanMessage) {
-                            setMessages(prev => [...prev, { role: 'assistant', content: cleanMessage }]);
-                        }
-                        
-                        // Zeige Fehlermeldung
-                        setMessages(prev => [...prev, {
-                            role: 'assistant',
-                            content: 'Entschuldige, da gab es ein technisches Problem. Lass uns manuell weitersuchen - welche Art von Position interessiert dich am meisten? 🤔'
-                        }]);
-                        
-                        setIsLoading(false);
-                        return true; // Verhindere dass der rohe TRIGGER_SEARCH angezeigt wird!
+                        console.error('❌ Failed to parse TRIGGER_SEARCH:', e);
+                        // Fallback: Zeige normale Nachricht
+                        setMessages(prev => [...prev, { role: 'assistant', content: responseText }]);
                     }
-                }
-                
-                // SCHRITT 2: Check für JOB_CARD
-                console.log('🔍 DEBUG: Checking for JOB_CARD...');
-                const parsed = parseJobCard(assistantMessage);
-                console.log('   Found:', parsed ? 'YES ✅' : 'NO ❌');
-                
-                if (parsed) {
-                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                    console.log('📋 DEBUG: JOB_CARD detected and parsed!');
-                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                    console.log('💼 Job:', parsed.jobData.title);
-                    console.log('🏢 Company:', parsed.jobData.company);
-                    console.log('📍 Location:', parsed.jobData.location);
-                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                } else {
+                    // Keine TRIGGER_SEARCH -> prüfe auf JOB_CARD
+                    console.log('🔍 DEBUG: Checking for JOB_CARD...');
+                    const parsed = parseJobCard(responseText);
+                    console.log('   Found:', parsed ? 'YES ✅' : 'NO ❌');
                     
-                    setJobCards(prev => [...prev, { ...parsed.jobData, id: Date.now() }]);
-                    if (parsed.cleanText) {
-                        console.log('💬 Adding clean text before card:', parsed.cleanText.substring(0, 100) + '...');
-                        setMessages(prev => [...prev, { role: 'assistant', content: parsed.cleanText }]);
+                    if (parsed) {
+                        // JOB_CARD gefunden
+                        console.log('💬 DEBUG: Adding message with JOB_CARD');
+                        setMessages(prev => [...prev, { role: 'assistant', content: parsed.cleanText || responseText }]);
+                    } else {
+                        // Normale Nachricht
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        console.log('💬 DEBUG: Normal message (no TRIGGER_SEARCH or JOB_CARD)');
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        console.log('📝 Message content:', responseText.substring(0, 200) + '...');
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        setMessages(prev => [...prev, { role: 'assistant', content: responseText }]);
                     }
-                    return true;
                 }
-                
-                // SCHRITT 3: Normaler Text
                 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                console.log('💬 DEBUG: Normal message (no TRIGGER_SEARCH or JOB_CARD)');
-                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                console.log('📝 Message content:', assistantMessage.substring(0, 200) + '...');
-                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                
-                setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
-                return true;
             };
 
-            // ========================================
-            // NEUE INTELLIGENTE GESTAFFELTE JOB-SUCHE
-            // ========================================
-            
-            // Generiert Query-Varianten: spezifisch → breit
-            const generateQueryVariants = (query) => {
-                const variants = [query];
-                const words = query.split(' ').filter(w => w.length > 2);
+            // Generiere Query-Varianten für intelligente Suche
+            const generateQueryVariants = (baseQuery) => {
+                const words = baseQuery.trim().split(/\s+/);
+                const variants = [baseQuery]; // Start mit original query
                 
-                // Extrahiere Kernbegriffe und erstelle breitere Varianten
-                if (words.length >= 3) {
-                    // Z.B. "Operations Director Manager" → "Operations Director" → "Operations Manager" → "Director" → "Manager"
-                    variants.push(words.slice(0, 2).join(' '));
-                    variants.push(words[0] + ' ' + words[words.length - 1]);
-                    variants.push(words[0]);
-                    variants.push(words[words.length - 1]);
-                } else if (words.length === 2) {
-                    // Z.B. "Operations Director" → "Operations Manager" → "Operations" → "Director"
-                    variants.push(words[0] + ' Manager');
-                    variants.push(words[0]);
-                    variants.push(words[1]);
-                } else if (words.length === 1) {
-                    // Single word - add "Manager" variant
-                    variants.push(words[0] + ' Manager');
+                // Kombinationen aus 2+ Wörtern
+                if (words.length >= 2) {
+                    const twoWords = `${words[0]} ${words[1]}`;
+                    if (!variants.includes(twoWords)) variants.push(twoWords);
                 }
                 
-                // Remove duplicates und behalte Reihenfolge
-                const unique = [...new Set(variants)];
-                console.log('📊 Query variants:', unique);
-                return unique;
+                // Einzelne wichtige Wörter
+                if (words.length >= 1 && words[0].length >= 4) {
+                    if (!variants.includes(words[0])) variants.push(words[0]);
+                }
+                if (words.length >= 2 && words[1].length >= 4) {
+                    if (!variants.includes(words[1])) variants.push(words[1]);
+                }
+                
+                console.log('📊 Query variants:', variants);
+                return variants;
             };
-            
-            // Generiert Location-Tiers: lokal → regional → überregional
-            const generateLocationTiers = (userRegion = 'Hannover') => {
+
+            // Generiere Location-Tiers für stufenweise Suche
+            const generateLocationTiers = (baseLocation) => {
                 const tiers = [
-                    // Runde 1: Nutzer-Region lokal
-                    { location: userRegion, radius: 50, label: 'Lokal' },
-                    { location: userRegion, radius: 100, label: 'Regional' },
-                    
-                    // Runde 2: Große Städte für deutschlandweite Abdeckung
-                    { location: 'Berlin', radius: 100, label: 'Berlin Region' },
-                    { location: 'München', radius: 100, label: 'München Region' },
-                    { location: 'Hamburg', radius: 100, label: 'Hamburg Region' },
-                    
-                    // Runde 3: Erweiterte Suche
-                    { location: 'Frankfurt', radius: 150, label: 'Frankfurt erweitert' },
-                    { location: 'Köln', radius: 150, label: 'Köln erweitert' },
-                    
-                    // Runde 4: Garantierter Fallback
-                    { location: 'Berlin', radius: 200, label: 'Berlin deutschlandweit' }
+                    { location: baseLocation, radius: 50, label: 'Lokal' },
+                    { location: baseLocation, radius: 100, label: 'Region' },
+                    { location: baseLocation, radius: 200, label: 'Erweitert' },
+                    { location: 'Berlin', radius: 50, label: 'Berlin' },
+                    { location: 'München', radius: 50, label: 'München' },
+                    { location: 'Hamburg', radius: 50, label: 'Hamburg' },
+                    { location: 'Frankfurt', radius: 50, label: 'Frankfurt' },
+                    { location: 'Deutschland', radius: 500, label: 'Bundesweit' }
                 ];
+                
+                // Remove duplicates
+                const seen = new Set();
+                const uniqueTiers = tiers.filter(tier => {
+                    const key = `${tier.location}-${tier.radius}`;
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
                 
                 console.log('📍 Location tiers:', tiers);
                 return tiers;
@@ -456,26 +317,31 @@ JOBEMPFEHLUNGEN:
                     
                     // Durchlaufe alle Kombinationen: Query-Varianten × Location-Tiers
                     for (const queryVariant of queryVariants) {
-                        if (foundJobs) break; // Stop wenn Jobs gefunden
-                        
                         for (const locationTier of locationTiers) {
                             attemptNumber++;
+                            
+                            // Skip wenn diese Kombination schon probiert wurde
+                            const comboKey = `${queryVariant}-${locationTier.location}-${locationTier.radius}`;
+                            if (triedSet.has(comboKey)) {
+                                console.log(`⏭️  Skipping already tried: ${comboKey}`);
+                                continue;
+                            }
+                            triedSet.add(comboKey);
                             
                             console.log(`🔍 Attempt ${attemptNumber}: "${queryVariant}" in ${locationTier.location} (${locationTier.radius}km) [${locationTier.label}]`);
                             
                             try {
                                 const data = await searchJobsAPI(queryVariant, locationTier.location, locationTier.radius);
-                                
-                                console.log(`📊 Result: ${data.total || 0} jobs found`);
+                                console.log('📊 Result:', data.jobs?.length || 0, 'jobs found');
                                 
                                 if (data.jobs && data.jobs.length > 0) {
-                                    // ✨ FIX 1: Filtere bereits gezeigte Jobs SOFORT
+                                    // 🔧 FIX: Filtere bereits gezeigte Jobs SOFORT mit REF!
                                     console.log(`   📋 Total jobs from API: ${data.jobs.length}`);
-                                    console.log(`   🔍 Already shown jobs: ${shownJobUrls.size}`);
+                                    console.log(`   🔍 Already shown jobs: ${shownJobUrlsRef.current.size}`);
                                     
                                     const newJobs = data.jobs.filter(job => {
                                         const jobKey = job.url || `${job.title}_${job.company}`;
-                                        const isNew = !shownJobUrls.has(jobKey);
+                                        const isNew = !isJobAlreadyShown(jobKey);
                                         if (!isNew) {
                                             console.log(`   ⏭️  Skipping already shown: "${job.title}" at ${job.company}`);
                                         }
@@ -528,215 +394,132 @@ JOBEMPFEHLUNGEN:
                     console.log(`   Location: "${foundJobs.location}"`);
                     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                     
-                    const jobsContext = `[SYSTEM: JOB-ANALYSE-MODUS]
-
-Hier sind ${foundJobs.jobs.length} Jobs von der Bundesagentur für "${foundJobs.query}" in "${foundJobs.location}":
-
-${foundJobs.jobs.slice(0, 5).map((job, i) => `
-Job ${i + 1}:
-- Titel: ${job.title}
-- Firma: ${job.company}
-- Ort: ${job.location}
-- Beschreibung: ${job.description}
-- Link: ${job.url}
-`).join('\n')}
-
-DEINE AUFGABE:
-1. Bewerte ALLE 5 Jobs intern (50% psychografisch, 30% Skills, 20% Umfeld)
-2. Wähle den BESTEN Job basierend auf dem Persönlichkeitsprofil
-3. Erstelle EINE JOB_CARD für diesen Job
-
-WICHTIG: 
-✅ Erstelle NUR eine JOB_CARD
-❌ KEINEN TRIGGER_SEARCH verwenden!
-❌ Dieser Prompt bedeutet NICHT "suche weitere Jobs"
-❌ Du musst NUR den besten der 5 gegebenen Jobs empfehlen
-
-Format:
-[Deine persönliche Analyse des Jobs - 2-3 Sätze]
-
-[JOB_CARD:{...}]
-
-Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
-
+                    // Call Sam API
                     const updatedMessages = [...currentMessages, {
                         role: 'user',
-                        content: jobsContext
+                        content: `Ich habe ${foundJobs.jobs.length} passende Stellen gefunden für: "${query}". Hier ist der beste Match:\n\n${JSON.stringify(foundJobs.jobs[0], null, 2)}\n\nAnalysiere diese Position und erstelle eine JOB_CARD mit deiner Bewertung. Fokussiere auf den ersten Job!`
                     }];
-
-                    console.log('🌐 Calling Sam API for job analysis...');
-                    const samResponse = await fetch('/.netlify/functions/chat', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            messages: updatedMessages,
-                            system: getSystemPrompt()
-                        })
-                    });
-                    console.log('✅ API Response received! Status:', samResponse.status);
-
-                    if (!samResponse.ok) {
-                        console.error('❌ API Response NOT OK:', samResponse.status, samResponse.statusText);
-                        throw new Error(`API returned ${samResponse.status}`);
-                    }
-
-                    const samData = await samResponse.json();
-                    console.log('📦 Response JSON parsed successfully');
-                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                    console.log('🤖 SAM\'S ANALYSIS RESPONSE:');
-                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                     
-                    const assistantMessage = samData.content[0].text;
-                    console.log(assistantMessage);
-                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                    console.log('📏 Response length:', assistantMessage.length, 'characters');
-                    console.log('🔍 Checking if response contains JOB_CARD...');
-
-                    const parsed = parseJobCard(assistantMessage);
-                    console.log('🎯 parseJobCard result:', parsed ? 'FOUND JOB_CARD ✅' : 'NO JOB_CARD ❌');
-                    
-                    if (parsed) {
-                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                        console.log('✨ Creating JOB_CARD!');
-                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                        console.log('📋 Job Data:', JSON.stringify(parsed.jobData, null, 2));
-                        console.log('💬 Clean Text:', parsed.cleanText ? parsed.cleanText.substring(0, 100) + '...' : '(none)');
-                        
-                        const newCard = { ...parsed.jobData, id: Date.now() };
-                        console.log('🆔 Card ID:', newCard.id);
-                        console.log('🏢 Job Title:', newCard.title);
-                        console.log('🔗 Job URL:', newCard.applyUrl || newCard.url || '(no URL)');
-                        
-                        setJobCards(prev => {
-                            console.log('📊 Current jobCards count:', prev.length);
-                            console.log('➕ Adding new card, new count will be:', prev.length + 1);
-                            return [...prev, newCard];
+                    try {
+                        console.log('🌐 Calling Sam API for job analysis...');
+                        const samResponse = await fetch('/.netlify/functions/chat', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                messages: updatedMessages,
+                                conversationContext: {
+                                    hasCV: messages.some(m => m.role === 'user' && m.content.includes('UPLOADED_CV')),
+                                    previousJobs: jobCards.map(j => j.title)
+                                }
+                            })
                         });
                         
-                        // ✨ FIX 1: Tracke diese Job-URL als "gezeigt"
-                        const jobKey = parsed.jobData.applyUrl || parsed.jobData.url || `${parsed.jobData.title}_${parsed.jobData.company}`;
-                        setShownJobUrls(prev => new Set([...prev, jobKey]));
-                        console.log(`✅ Added to shown jobs: "${parsed.jobData.title}" (Total shown: ${shownJobUrls.size + 1})`);
+                        console.log('✅ API Response received! Status:', samResponse.status);
                         
-                        if (parsed.cleanText) {
-                            console.log('💬 Adding Sam\'s analysis message to chat');
-                            setMessages(prev => [...prev, { role: 'assistant', content: parsed.cleanText }]);
+                        if (!samResponse.ok) {
+                            throw new Error(`Sam API error: ${samResponse.status}`);
                         }
-                        console.log('✅ JOB_CARD successfully added to UI!');
-                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                    } else {
-                        // ✨ FIX 2: Check ob Sam einen TRIGGER_SEARCH zurückgegeben hat!
-                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                        console.log('⚠️  NO JOB_CARD FOUND in response!');
-                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                         
-                        // Check ob Response einen TRIGGER_SEARCH enthält
-                        if (assistantMessage.includes('[TRIGGER_SEARCH:')) {
-                            console.log('🔍 Response contains TRIGGER_SEARCH - Sam wants to search differently!');
-                            console.log('📝 Processing TRIGGER_SEARCH via processSamResponse...');
+                        const samData = await samResponse.json();
+                        console.log('📦 Response JSON parsed successfully');
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        console.log('🤖 SAM\'S ANALYSIS RESPONSE:');
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        const assistantMessage = samData.content[0].text;
+                        console.log(assistantMessage);
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        console.log('📏 Response length:', assistantMessage.length, 'characters');
+                        console.log('🔍 Checking if response contains JOB_CARD...');
+                        
+                        const parsed = parseJobCard(assistantMessage);
+                        console.log('🎯 parseJobCard result:', parsed ? 'FOUND JOB_CARD ✅' : 'NO JOB_CARD ❌');
+                        
+                        if (parsed) {
+                            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                            console.log('✨ Creating JOB_CARD!');
+                            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                            console.log('📋 Job Data:', JSON.stringify(parsed.jobData, null, 2));
+                            console.log('💬 Clean Text:', parsed.cleanText ? parsed.cleanText.substring(0, 100) + '...' : '(none)');
                             
-                            // WICHTIG: Nutze processSamResponse um TRIGGER_SEARCH richtig zu verarbeiten!
-                            const messagesWithResponse = [...updatedMessages, { role: 'assistant', content: assistantMessage }];
-                            await processSamResponse(assistantMessage, messagesWithResponse);
-                            console.log('✅ TRIGGER_SEARCH processed successfully!');
+                            const newCard = { ...parsed.jobData, id: Date.now() };
+                            console.log('🆔 Card ID:', newCard.id);
+                            console.log('🏢 Job Title:', newCard.title);
+                            console.log('🔗 Job URL:', newCard.applyUrl || newCard.url || '(no URL)');
+                            
+                            setJobCards(prev => {
+                                console.log('📊 Current jobCards count:', prev.length);
+                                console.log('➕ Adding new card, new count will be:', prev.length + 1);
+                                return [...prev, newCard];
+                            });
+                            
+                            // 🔧 FIX: Tracke diese Job-URL als "gezeigt" mit Helper Function
+                            const jobKey = parsed.jobData.applyUrl || parsed.jobData.url || `${parsed.jobData.title}_${parsed.jobData.company}`;
+                            addJobToShown(jobKey);
+                            
+                            if (parsed.cleanText) {
+                                console.log('💬 Adding Sam\'s analysis message to chat');
+                                setMessages(prev => [...prev, { role: 'assistant', content: parsed.cleanText }]);
+                            }
+                            console.log('✅ JOB_CARD successfully added to UI!');
+                            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                         } else {
-                            console.log('📝 Adding Sam\'s message as normal text (no card, no TRIGGER_SEARCH)');
-                            console.log('Message preview:', assistantMessage.substring(0, 200) + '...');
-                            setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
-                            console.log('⚠️  This is unexpected - Sam should have created a JOB_CARD!');
+                            // 🔧 FIX 2: Check ob Sam einen TRIGGER_SEARCH zurückgegeben hat!
+                            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                            console.log('⚠️  NO JOB_CARD FOUND in response!');
+                            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                            
+                            // Check ob Response einen TRIGGER_SEARCH enthält
+                            if (assistantMessage.includes('[TRIGGER_SEARCH:')) {
+                                console.log('🔍 Response contains TRIGGER_SEARCH - Sam wants to search differently!');
+                                console.log('📝 Processing TRIGGER_SEARCH via processSamResponse...');
+                                
+                                // WICHTIG: Nutze processSamResponse um TRIGGER_SEARCH richtig zu verarbeiten!
+                                const messagesWithResponse = [...updatedMessages, { role: 'assistant', content: assistantMessage }];
+                                await processSamResponse(assistantMessage, messagesWithResponse);
+                                console.log('✅ TRIGGER_SEARCH processed successfully!');
+                            } else {
+                                console.log('📝 Adding Sam\'s message as normal text (no card, no TRIGGER_SEARCH)');
+                                console.log('Message preview:', assistantMessage.substring(0, 200) + '...');
+                                setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
+                                console.log('⚠️  This is unexpected - Sam should have created a JOB_CARD!');
+                            }
+                            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                         }
+                        
                         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                    }
-                    
-                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                    console.log('🏁 searchJobs() completed successfully!');
-                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                    setIsSearchingJobs(false);
-                    return foundJobs.jobs;
+                        console.log('🏁 searchJobs() completed successfully!');
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        setIsSearchingJobs(false);
+                        return foundJobs.jobs;
 
+                    } catch (error) {
+                        console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        console.error('❌ CRITICAL ERROR in searchJobs!');
+                        console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        console.error('Error type:', error.name);
+                        console.error('Error message:', error.message);
+                        console.error('Error stack:', error.stack);
+                        console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        
+                        setMessages(prev => [...prev, {
+                            role: 'assistant',
+                            content: `Entschuldigung, da ist ein technisches Problem aufgetreten: ${error.message}. Lass uns es nochmal versuchen! 🔧`
+                        }]);
+                        setIsSearchingJobs(false);
+                        return null;
+                    }
                 } catch (error) {
-                    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                    console.error('❌ CRITICAL ERROR in searchJobs!');
-                    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                    console.error('Error type:', error.name);
-                    console.error('Error message:', error.message);
-                    console.error('Error stack:', error.stack);
-                    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                    
+                    console.error('Critical search error:', error);
                     setMessages(prev => [...prev, {
                         role: 'assistant',
-                        content: 'Technisches Problem bei der Suche. Lass uns es nochmal versuchen! 🔧'
+                        content: 'Entschuldigung, bei der Jobsuche ist ein Fehler aufgetreten. Lass es uns nochmal versuchen! 🔧'
                     }]);
                     setIsSearchingJobs(false);
                     return null;
                 }
             };
 
-            const handleFileUpload = async (event) => {
-                const file = event.target.files?.[0];
-                if (!file) return;
-
-                setIsUploadingCV(true);
-                console.log('📄 CV upload started');
-                
-                const reader = new FileReader();
-                reader.onload = async (e) => {
-                    try {
-                        const base64Data = e.target.result.split(',')[1];
-                        
-                        const response = await fetch('/.netlify/functions/parse-cv', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                fileData: base64Data,
-                                fileName: file.name,
-                                fileType: file.type
-                            })
-                        });
-                        
-                        if (!response.ok) {
-                            throw new Error('Upload fehlgeschlagen');
-                        }
-                        
-                        const data = await response.json();
-                        const fileMessage = `[SYSTEM: Der Nutzer hat seinen Lebenslauf hochgeladen. Analysiere und antworte persönlich. Zeige NICHT die rohen Daten.]\n\n${data.text}`;
-                        
-                        const updatedMessages = [...messages, { role: 'user', content: fileMessage }];
-                        setIsUploadingCV(false);
-                        setIsLoading(true);
-
-                        const samResponse = await fetch('/.netlify/functions/chat', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                messages: updatedMessages,
-                                system: getSystemPrompt()
-                            })
-                        });
-
-                        const samData = await samResponse.json();
-                        const assistantMessage = samData.content[0].text;
-
-                        // WICHTIG: Nutze zentrale Verarbeitungsfunktion!
-                        // updatedMessages muss die Assistant-Message enthalten für searchJobs!
-                        const messagesWithResponse = [...updatedMessages, { role: 'assistant', content: assistantMessage }];
-                        await processSamResponse(assistantMessage, messagesWithResponse);
-                        setIsLoading(false);
-                        
-                    } catch (error) {
-                        console.error('❌ CV upload error:', error);
-                        setMessages([...messages, {
-                            role: 'assistant',
-                            content: 'Fehler beim Verarbeiten. Bitte nochmal versuchen. 🔧'
-                        }]);
-                        setIsUploadingCV(false);
-                        setIsLoading(false);
-                    }
-                };
-                reader.readAsDataURL(file);
-            };
-
-            const handleSend = async () => {
+            const sendMessage = async () => {
                 if (!input.trim() || isLoading) return;
 
                 const userMessage = { role: 'user', content: input };
@@ -751,66 +534,62 @@ Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             messages: updatedMessages,
-                            system: getSystemPrompt()
+                            conversationContext: {
+                                hasCV: messages.some(m => m.role === 'user' && m.content.includes('UPLOADED_CV')),
+                                previousJobs: jobCards.map(j => j.title)
+                            }
                         })
                     });
 
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
+                    if (!response.ok) throw new Error('Network response was not ok');
 
                     const data = await response.json();
                     const assistantMessage = data.content[0].text;
 
-                    // Nutze zentrale Verarbeitungsfunktion!
-                    // updatedMessages muss die Assistant-Message enthalten für searchJobs!
-                    const messagesWithResponse = [...updatedMessages, { role: 'assistant', content: assistantMessage }];
-                    await processSamResponse(assistantMessage, messagesWithResponse);
+                    await processSamResponse(assistantMessage, updatedMessages);
 
                 } catch (error) {
-                    console.error('❌ Error:', error);
-                    setMessages([...updatedMessages, { 
-                        role: 'assistant', 
-                        content: 'Technischer Fehler. Bitte nochmal versuchen.' 
+                    console.error('Error:', error);
+                    setMessages(prev => [...prev, {
+                        role: 'assistant',
+                        content: 'Entschuldigung, da ist etwas schiefgelaufen. Versuch es nochmal! 🔧'
                     }]);
                 } finally {
                     setIsLoading(false);
                 }
             };
 
-            const handleJobAction = async (jobId, action) => {
+            const handleJobAction = async (cardId, action) => {
                 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                console.log('🎬 DEBUG: handleJobAction called');
-                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                console.log('   Action:', action);
-                console.log('   Job ID:', jobId);
+                console.log('🎯 DEBUG: handleJobAction called');
+                console.log(`   Card ID: ${cardId}`);
+                console.log(`   Action: ${action}`);
                 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                 
-                const job = jobCards.find(j => j.id === jobId);
-                if (!job) return;
+                const card = jobCards.find(c => c.id === cardId);
+                if (!card) return;
 
-                let userResponse = '';
-                if (action === 'apply') {
-                    userResponse = `Ich möchte mich für "${job.title}" bewerben.`;
-                    if (job.applyUrl) window.open(job.applyUrl, '_blank');
-                } else if (action === 'save') {
-                    console.log('💾 DEBUG: User clicked SAVE button - expecting TRIGGER_SEARCH in response!');
-                    setSavedJobs(prev => {
-                        if (prev.find(j => j.id === jobId)) return prev;
-                        return [...prev, job];
-                    });
-                    userResponse = `"${job.title}" gespeichert. Zeige mir weitere Stellen.`;
-                } else if (action === 'reject') {
-                    userResponse = `"${job.title}" passt nicht.`;
+                // Remove from visible job cards
+                setJobCards(prev => prev.filter(c => c.id !== cardId));
+
+                // Handle different actions
+                if (action === 'save') {
+                    setSavedJobs(prev => [...prev, card]);
+                } else if (action === 'apply') {
+                    window.open(card.applyUrl, '_blank');
+                    setSavedJobs(prev => [...prev, { ...card, applied: true }]);
                 }
 
-                console.log('📤 DEBUG: Sending to Sam:', userResponse);
-                
-                setJobCards(prev => prev.filter(j => j.id !== jobId));
+                // Ask Sam for feedback and next job
+                const updatedMessages = [...messages, {
+                    role: 'user',
+                    content: action === 'save' 
+                        ? `Ich habe die Position "${card.title}" bei ${card.company} gespeichert. Zeig mir weitere passende Stellen! 🔍`
+                        : action === 'reject'
+                        ? `Die Position "${card.title}" bei ${card.company} passt nicht so gut. Such weiter! 🔍`
+                        : `Ich habe mich auf "${card.title}" bei ${card.company} beworben! Zeig mir weitere passende Stellen! 🚀`
+                }];
 
-                const userMessage = { role: 'user', content: userResponse };
-                const updatedMessages = [...messages, userMessage];
-                // Zeige user message sofort
                 setMessages(updatedMessages);
                 setIsLoading(true);
 
@@ -820,91 +599,208 @@ Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             messages: updatedMessages,
-                            system: getSystemPrompt()
+                            conversationContext: {
+                                hasCV: messages.some(m => m.role === 'user' && m.content.includes('UPLOADED_CV')),
+                                previousJobs: jobCards.map(j => j.title),
+                                lastAction: action,
+                                lastJob: card
+                            }
                         })
                     });
+
+                    if (!response.ok) throw new Error('Network response was not ok');
 
                     const data = await response.json();
                     const assistantMessage = data.content[0].text;
                     
                     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
                     console.log('📨 DEBUG: Sam response after handleJobAction:');
-                    console.log('   Context: After user clicked "' + action + '"');
+                    console.log('   Context: After user clicked', action);
                     console.log('   Expected: TRIGGER_SEARCH (if save/reject) or normal text (if apply)');
                     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                    
-                    // Nutze zentrale Verarbeitungsfunktion!
-                    // WICHTIG: processSamResponse fügt die assistant message hinzu - wir tun das NICHT hier!
-                    const messagesWithResponse = [...updatedMessages, { role: 'assistant', content: assistantMessage }];
-                    await processSamResponse(assistantMessage, messagesWithResponse);
+
+                    await processSamResponse(assistantMessage, updatedMessages);
 
                 } catch (error) {
-                    console.error('❌ Error:', error);
+                    console.error('Error in handleJobAction:', error);
                     setMessages(prev => [...prev, {
                         role: 'assistant',
-                        content: 'Fehler. Lass uns weitermachen! 🔧'
+                        content: 'Entschuldigung, da ist etwas schiefgelaufen. Lass uns weitermachen! 💪'
                     }]);
                 } finally {
                     setIsLoading(false);
                 }
             };
 
+            const handleCVUpload = async (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                console.log('📄 CV upload started');
+                setIsUploadingCV(true);
+
+                try {
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        const cvContent = e.target.result;
+
+                        const updatedMessages = [...messages, {
+                            role: 'user',
+                            content: `UPLOADED_CV: ${file.name}\n\nCV Content: ${cvContent.substring(0, 3000)}...`
+                        }];
+
+                        setMessages(prev => [...prev, {
+                            role: 'user',
+                            content: `📄 Ich habe meinen Lebenslauf hochgeladen: ${file.name}`
+                        }]);
+
+                        const response = await fetch('/.netlify/functions/chat', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                messages: updatedMessages,
+                                conversationContext: {
+                                    hasCV: true,
+                                    previousJobs: jobCards.map(j => j.title)
+                                }
+                            })
+                        });
+
+                        if (!response.ok) throw new Error('Network response was not ok');
+
+                        const data = await response.json();
+                        await processSamResponse(data.content[0].text, updatedMessages);
+                    };
+
+                    reader.readAsText(file);
+
+                } catch (error) {
+                    console.error('Error uploading CV:', error);
+                    setMessages(prev => [...prev, {
+                        role: 'assistant',
+                        content: 'Entschuldigung, beim Hochladen deines Lebenslaufs ist etwas schiefgelaufen. Versuch es nochmal! 📄'
+                    }]);
+                } finally {
+                    setIsUploadingCV(false);
+                }
+            };
+
             return (
                 <div style={{
-                    maxWidth: '900px',
-                    margin: '0 auto',
-                    height: '100vh',
                     display: 'flex',
                     flexDirection: 'column',
+                    height: '100vh',
                     backgroundColor: '#f8f9fa'
                 }}>
+                    {/* Header */}
                     <div style={{
-                        backgroundColor: '#2563eb',
-                        color: 'white',
                         padding: '20px',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        color: 'white',
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center'
                     }}>
-                        <div style={{ textAlign: 'left' }}>
-                            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>
-                                💼 Sam - Dein Karriere-Coach
-                            </h1>
-                            <p style={{ margin: '5px 0 0 0', fontSize: '14px', opacity: 0.9 }}>
-                                Powered by Bundesagentur für Arbeit
-                            </p>
+                        <div>
+                            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>Sam - Karriere-Coach</h1>
+                            <p style={{ margin: '5px 0 0 0', fontSize: '14px', opacity: 0.9 }}>Dein persönlicher KI-Karriere-Berater 🚀</p>
                         </div>
-                        
-                        {savedJobs.length > 0 && (
-                            <button
-                                onClick={() => setShowSavedJobs(true)}
-                                style={{
-                                    backgroundColor: 'rgba(255,255,255,0.2)',
-                                    border: '2px solid white',
-                                    color: 'white',
-                                    padding: '10px 20px',
-                                    borderRadius: '8px',
-                                    fontSize: '14px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px'
-                                }}
-                            >
-                                📋 Gespeicherte Jobs ({savedJobs.length})
-                            </button>
-                        )}
+                        <button
+                            onClick={() => setShowSavedJobs(!showSavedJobs)}
+                            style={{
+                                padding: '10px 20px',
+                                backgroundColor: 'rgba(255,255,255,0.2)',
+                                border: 'none',
+                                borderRadius: '8px',
+                                color: 'white',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(255,255,255,0.3)'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(255,255,255,0.2)'}
+                        >
+                            <BookmarkPlusIcon />
+                            Gespeicherte Jobs ({savedJobs.length})
+                        </button>
                     </div>
 
+                    {/* Saved Jobs Panel */}
+                    {showSavedJobs && (
+                        <div style={{
+                            padding: '20px',
+                            backgroundColor: 'white',
+                            borderBottom: '1px solid #e0e0e0',
+                            maxHeight: '300px',
+                            overflowY: 'auto'
+                        }}>
+                            <h3 style={{ margin: '0 0 15px 0', color: '#333' }}>Gespeicherte Stellen</h3>
+                            {savedJobs.length === 0 ? (
+                                <p style={{ color: '#666', fontStyle: 'italic' }}>Noch keine gespeicherten Stellen</p>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    {savedJobs.map((job, index) => (
+                                        <div key={index} style={{
+                                            padding: '15px',
+                                            backgroundColor: '#f8f9fa',
+                                            borderRadius: '8px',
+                                            border: '1px solid #e0e0e0'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                                                <div>
+                                                    <h4 style={{ margin: '0 0 5px 0', color: '#333' }}>{job.title}</h4>
+                                                    <p style={{ margin: '0 0 5px 0', color: '#666', fontSize: '14px' }}>{job.company}</p>
+                                                    <p style={{ margin: 0, color: '#999', fontSize: '13px' }}>{job.location}</p>
+                                                    {job.applied && (
+                                                        <span style={{
+                                                            display: 'inline-block',
+                                                            marginTop: '5px',
+                                                            padding: '4px 8px',
+                                                            backgroundColor: '#4CAF50',
+                                                            color: 'white',
+                                                            borderRadius: '4px',
+                                                            fontSize: '12px'
+                                                        }}>
+                                                            ✓ Beworben
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    onClick={() => window.open(job.applyUrl, '_blank')}
+                                                    style={{
+                                                        padding: '8px 16px',
+                                                        backgroundColor: '#667eea',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '6px',
+                                                        cursor: 'pointer',
+                                                        fontSize: '14px',
+                                                        fontWeight: '500'
+                                                    }}
+                                                >
+                                                    Öffnen
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Chat Messages */}
                     <div style={{
                         flex: 1,
                         overflowY: 'auto',
                         padding: '20px',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '16px'
+                        gap: '15px'
                     }}>
                         {messages.map((message, index) => (
                             <div
@@ -918,186 +814,172 @@ Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
                                     maxWidth: '70%',
                                     padding: '12px 16px',
                                     borderRadius: '12px',
-                                    backgroundColor: message.role === 'user' ? '#2563eb' : 'white',
-                                    color: message.role === 'user' ? 'white' : '#1f2937',
-                                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                    backgroundColor: message.role === 'user' ? '#667eea' : 'white',
+                                    color: message.role === 'user' ? 'white' : '#333',
+                                    boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
                                     whiteSpace: 'pre-wrap',
-                                    lineHeight: '1.5'
+                                    wordWrap: 'break-word'
                                 }}>
                                     {message.content}
                                 </div>
                             </div>
                         ))}
 
-                        {jobCards.map((job) => (
-                            <div key={job.id} style={{
+                        {/* Job Cards */}
+                        {jobCards.map((card) => (
+                            <div key={card.id} style={{
                                 backgroundColor: 'white',
-                                borderRadius: '16px',
-                                padding: '24px',
+                                borderRadius: '12px',
+                                padding: '20px',
                                 boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                                border: '2px solid #e5e7eb',
-                                maxWidth: '85%',
-                                margin: '0 auto',
-                                width: '100%'
+                                border: '2px solid #667eea'
                             }}>
-                                <div style={{
-                                    display: 'inline-block',
-                                    backgroundColor: job.fitScore >= 80 ? '#10b981' : job.fitScore >= 60 ? '#f59e0b' : '#ef4444',
-                                    color: 'white',
-                                    padding: '4px 12px',
-                                    borderRadius: '20px',
-                                    fontSize: '14px',
-                                    fontWeight: '600',
-                                    marginBottom: '12px'
-                                }}>
-                                    {job.fitScore}% Match
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '15px' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <h3 style={{ margin: '0 0 8px 0', color: '#333', fontSize: '18px' }}>{card.title}</h3>
+                                        <p style={{ margin: '0 0 5px 0', color: '#666', fontSize: '14px' }}>{card.company}</p>
+                                        <p style={{ margin: '0 0 5px 0', color: '#999', fontSize: '13px' }}>{card.location}</p>
+                                        {card.salary && <p style={{ margin: 0, color: '#4CAF50', fontSize: '14px', fontWeight: '500' }}>{card.salary}</p>}
+                                    </div>
+                                    <div style={{
+                                        padding: '8px 16px',
+                                        backgroundColor: card.fitScore >= 80 ? '#4CAF50' : card.fitScore >= 60 ? '#FF9800' : '#666',
+                                        color: 'white',
+                                        borderRadius: '20px',
+                                        fontWeight: 'bold',
+                                        fontSize: '14px'
+                                    }}>
+                                        {card.fitScore}% Match
+                                    </div>
                                 </div>
 
-                                <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: '600', color: '#1f2937' }}>
-                                    {job.title}
-                                </h3>
-
-                                <div style={{ display: 'flex', gap: '16px', fontSize: '14px', color: '#6b7280', marginBottom: '16px', flexWrap: 'wrap' }}>
-                                    <span>🏢 {job.company}</span>
-                                    <span>📍 {job.location}</span>
-                                    {job.salary && <span>💰 {job.salary}</span>}
-                                </div>
-
-                                <p style={{ fontSize: '15px', lineHeight: '1.6', color: '#374151', marginBottom: '16px' }}>
-                                    {job.description}
+                                <p style={{ margin: '0 0 15px 0', color: '#555', fontSize: '14px', lineHeight: '1.6' }}>
+                                    {card.description}
                                 </p>
 
-                                {job.pros && job.pros.length > 0 && (
-                                    <div style={{ marginBottom: '12px' }}>
-                                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#10b981', marginBottom: '6px' }}>
-                                            ✅ Was passt:
-                                        </div>
-                                        <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '14px', color: '#374151' }}>
-                                            {job.pros.map((pro, i) => (
-                                                <li key={i} style={{ marginBottom: '4px' }}>{pro}</li>
-                                            ))}
+                                {card.pros && card.pros.length > 0 && (
+                                    <div style={{ marginBottom: '15px' }}>
+                                        <h4 style={{ margin: '0 0 8px 0', color: '#4CAF50', fontSize: '14px' }}>✓ Vorteile:</h4>
+                                        <ul style={{ margin: 0, paddingLeft: '20px', color: '#555', fontSize: '13px' }}>
+                                            {card.pros.map((pro, idx) => <li key={idx}>{pro}</li>)}
                                         </ul>
                                     </div>
                                 )}
 
-                                {job.cons && job.cons.length > 0 && (
-                                    <div style={{ marginBottom: '20px' }}>
-                                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#f59e0b', marginBottom: '6px' }}>
-                                            ⚠️ Beachte:
-                                        </div>
-                                        <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '14px', color: '#374151' }}>
-                                            {job.cons.map((con, i) => (
-                                                <li key={i} style={{ marginBottom: '4px' }}>{con}</li>
-                                            ))}
+                                {card.cons && card.cons.length > 0 && (
+                                    <div style={{ marginBottom: '15px' }}>
+                                        <h4 style={{ margin: '0 0 8px 0', color: '#FF5722', fontSize: '14px' }}>⚠ Zu beachten:</h4>
+                                        <ul style={{ margin: 0, paddingLeft: '20px', color: '#555', fontSize: '13px' }}>
+                                            {card.cons.map((con, idx) => <li key={idx}>{con}</li>)}
                                         </ul>
                                     </div>
                                 )}
 
-                                <div style={{ display: 'flex', gap: '12px', marginTop: '20px', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
                                     <button
-                                        onClick={() => handleJobAction(job.id, 'apply')}
+                                        onClick={() => handleJobAction(card.id, 'apply')}
                                         style={{
-                                            flex: '1',
-                                            minWidth: '140px',
-                                            padding: '12px 20px',
-                                            backgroundColor: '#2563eb',
+                                            flex: 1,
+                                            padding: '12px',
+                                            backgroundColor: '#4CAF50',
                                             color: 'white',
                                             border: 'none',
                                             borderRadius: '8px',
-                                            fontSize: '15px',
-                                            fontWeight: '600',
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            gap: '8px'
+                                            gap: '8px',
+                                            fontSize: '14px',
+                                            fontWeight: '500',
+                                            transition: 'background-color 0.2s'
                                         }}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = '#45a049'}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = '#4CAF50'}
                                     >
                                         <CheckCircleIcon />
                                         Bewerben
                                     </button>
-                                    
                                     <button
-                                        onClick={() => handleJobAction(job.id, 'save')}
+                                        onClick={() => handleJobAction(card.id, 'save')}
                                         style={{
-                                            flex: '1',
-                                            minWidth: '140px',
-                                            padding: '12px 20px',
-                                            backgroundColor: '#10b981',
+                                            flex: 1,
+                                            padding: '12px',
+                                            backgroundColor: '#667eea',
                                             color: 'white',
                                             border: 'none',
                                             borderRadius: '8px',
-                                            fontSize: '15px',
-                                            fontWeight: '600',
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            gap: '8px'
+                                            gap: '8px',
+                                            fontSize: '14px',
+                                            fontWeight: '500',
+                                            transition: 'background-color 0.2s'
                                         }}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = '#5568d3'}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = '#667eea'}
                                     >
                                         <BookmarkPlusIcon />
-                                        Speichern & weiter
+                                        Speichern
                                     </button>
-                                    
                                     <button
-                                        onClick={() => handleJobAction(job.id, 'reject')}
+                                        onClick={() => handleJobAction(card.id, 'reject')}
                                         style={{
-                                            flex: '1',
-                                            minWidth: '140px',
-                                            padding: '12px 20px',
-                                            backgroundColor: '#ef4444',
+                                            flex: 1,
+                                            padding: '12px',
+                                            backgroundColor: '#f44336',
                                             color: 'white',
                                             border: 'none',
                                             borderRadius: '8px',
-                                            fontSize: '15px',
-                                            fontWeight: '600',
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            gap: '8px'
+                                            gap: '8px',
+                                            fontSize: '14px',
+                                            fontWeight: '500',
+                                            transition: 'background-color 0.2s'
                                         }}
+                                        onMouseEnter={(e) => e.target.style.backgroundColor = '#da190b'}
+                                        onMouseLeave={(e) => e.target.style.backgroundColor = '#f44336'}
                                     >
                                         <Trash2Icon />
-                                        Verwerfen
+                                        Ablehnen
                                     </button>
                                 </div>
                             </div>
                         ))}
 
-                        {(isLoading || isSearchingJobs || isUploadingCV) && (
-                            <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                        {isSearchingJobs && (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                padding: '15px',
+                                backgroundColor: 'white',
+                                borderRadius: '12px',
+                                boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                            }}>
+                                <SearchIcon />
+                                <span style={{ color: '#666' }}>Suche nach passenden Stellen...</span>
+                            </div>
+                        )}
+
+                        {isLoading && (
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'flex-start'
+                            }}>
                                 <div style={{
                                     padding: '12px 16px',
                                     borderRadius: '12px',
                                     backgroundColor: 'white',
-                                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                                    display: 'flex',
-                                    gap: '8px',
-                                    alignItems: 'center'
+                                    boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+                                    color: '#666'
                                 }}>
-                                    {isSearchingJobs ? (
-                                        <>
-                                            <SearchIcon />
-                                            <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                                                Durchsuche Jobbörse...
-                                            </span>
-                                        </>
-                                    ) : isUploadingCV ? (
-                                        <>
-                                            <UploadIcon />
-                                            <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                                                Verarbeite Lebenslauf...
-                                            </span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="bounce-dot" style={{ animationDelay: '0s' }} />
-                                            <div className="bounce-dot" style={{ animationDelay: '0.16s' }} />
-                                            <div className="bounce-dot" style={{ animationDelay: '0.32s' }} />
-                                        </>
-                                    )}
+                                    Sam denkt nach...
                                 </div>
                             </div>
                         )}
@@ -1105,281 +987,91 @@ Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* Saved Jobs Modal */}
-                    {showSavedJobs && (
-                        <div style={{
-                            position: 'fixed',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            backgroundColor: 'rgba(0,0,0,0.5)',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            zIndex: 1000,
-                            padding: '20px'
-                        }}
-                        onClick={() => setShowSavedJobs(false)}
-                        >
-                            <div style={{
-                                backgroundColor: 'white',
-                                borderRadius: '16px',
-                                maxWidth: '900px',
-                                width: '100%',
-                                maxHeight: '90vh',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                boxShadow: '0 20px 50px rgba(0,0,0,0.3)'
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                            >
-                                <div style={{
-                                    padding: '24px',
-                                    borderBottom: '1px solid #e5e7eb',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center'
-                                }}>
-                                    <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>
-                                        📋 Gespeicherte Jobs ({savedJobs.length})
-                                    </h2>
-                                    <button
-                                        onClick={() => setShowSavedJobs(false)}
-                                        style={{
-                                            backgroundColor: 'transparent',
-                                            border: 'none',
-                                            fontSize: '24px',
-                                            cursor: 'pointer',
-                                            color: '#6b7280',
-                                            padding: '4px 8px'
-                                        }}
-                                    >
-                                        ✕
-                                    </button>
-                                </div>
-                                
-                                <div style={{
-                                    flex: 1,
-                                    overflowY: 'auto',
-                                    padding: '20px'
-                                }}>
-                                    {savedJobs.length === 0 ? (
-                                        <div style={{
-                                            textAlign: 'center',
-                                            padding: '60px 20px',
-                                            color: '#6b7280'
-                                        }}>
-                                            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
-                                            <p style={{ fontSize: '18px', margin: 0 }}>Noch keine Jobs gespeichert</p>
-                                        </div>
-                                    ) : (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                            {[...savedJobs].sort((a, b) => b.fitScore - a.fitScore).map((job) => (
-                                                <div key={job.id} style={{
-                                                    backgroundColor: '#f9fafb',
-                                                    borderRadius: '12px',
-                                                    padding: '20px',
-                                                    border: '2px solid #e5e7eb'
-                                                }}>
-                                                    <div style={{
-                                                        display: 'inline-block',
-                                                        backgroundColor: job.fitScore >= 80 ? '#10b981' : job.fitScore >= 60 ? '#f59e0b' : '#ef4444',
-                                                        color: 'white',
-                                                        padding: '4px 12px',
-                                                        borderRadius: '20px',
-                                                        fontSize: '14px',
-                                                        fontWeight: '600',
-                                                        marginBottom: '12px'
-                                                    }}>
-                                                        {job.fitScore}% Match
-                                                    </div>
-
-                                                    <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600', color: '#1f2937' }}>
-                                                        {job.title}
-                                                    </h3>
-
-                                                    <div style={{ display: 'flex', gap: '16px', fontSize: '14px', color: '#6b7280', marginBottom: '12px', flexWrap: 'wrap' }}>
-                                                        <span>🏢 {job.company}</span>
-                                                        <span>📍 {job.location}</span>
-                                                        {job.salary && <span>💰 {job.salary}</span>}
-                                                    </div>
-
-                                                    <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#374151', marginBottom: '16px' }}>
-                                                        {job.description}
-                                                    </p>
-
-                                                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                                                        <button
-                                                            onClick={() => {
-                                                                if (job.applyUrl) window.open(job.applyUrl, '_blank');
-                                                            }}
-                                                            style={{
-                                                                flex: '1',
-                                                                minWidth: '120px',
-                                                                padding: '10px 16px',
-                                                                backgroundColor: '#2563eb',
-                                                                color: 'white',
-                                                                border: 'none',
-                                                                borderRadius: '8px',
-                                                                fontSize: '14px',
-                                                                fontWeight: '600',
-                                                                cursor: 'pointer',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                gap: '8px'
-                                                            }}
-                                                        >
-                                                            <CheckCircleIcon />
-                                                            Bewerben
-                                                        </button>
-                                                        
-                                                        <button
-                                                            onClick={() => {
-                                                                setSavedJobs(prev => prev.filter(j => j.id !== job.id));
-                                                            }}
-                                                            style={{
-                                                                flex: '1',
-                                                                minWidth: '120px',
-                                                                padding: '10px 16px',
-                                                                backgroundColor: '#ef4444',
-                                                                color: 'white',
-                                                                border: 'none',
-                                                                borderRadius: '8px',
-                                                                fontSize: '14px',
-                                                                fontWeight: '600',
-                                                                cursor: 'pointer',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                gap: '8px'
-                                                            }}
-                                                        >
-                                                            <Trash2Icon />
-                                                            Entfernen
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
+                    {/* Input Area */}
                     <div style={{
                         padding: '20px',
                         backgroundColor: 'white',
-                        borderTop: '1px solid #e5e7eb',
-                        boxShadow: '0 -2px 4px rgba(0,0,0,0.05)'
+                        borderTop: '1px solid #e0e0e0',
+                        display: 'flex',
+                        gap: '10px'
                     }}>
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleFileUpload}
-                                accept=".txt,.pdf,.doc,.docx"
-                                style={{ display: 'none' }}
-                            />
-                            
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                disabled={isLoading || isSearchingJobs || isUploadingCV}
-                                title="Lebenslauf hochladen"
-                                style={{
-                                    padding: '12px',
-                                    backgroundColor: '#f3f4f6',
-                                    border: '1px solid #d1d5db',
-                                    borderRadius: '8px',
-                                    cursor: (isLoading || isSearchingJobs || isUploadingCV) ? 'not-allowed' : 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    opacity: (isLoading || isSearchingJobs || isUploadingCV) ? 0.5 : 1
-                                }}
-                            >
-                                <FileUpIcon />
-                            </button>
-
-                            <textarea
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyPress={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        handleSend();
-                                    }
-                                }}
-                                placeholder="Schreibe deine Antwort..."
-                                disabled={isLoading || isSearchingJobs || isUploadingCV}
-                                style={{
-                                    flex: 1,
-                                    padding: '12px 16px',
-                                    borderRadius: '8px',
-                                    border: '1px solid #d1d5db',
-                                    fontSize: '15px',
-                                    resize: 'none',
-                                    minHeight: '48px',
-                                    maxHeight: '120px',
-                                    fontFamily: 'inherit',
-                                    outline: 'none'
-                                }}
-                                rows={1}
-                            />
-
-                            <button
-                                onClick={handleSend}
-                                disabled={!input.trim() || isLoading || isSearchingJobs || isUploadingCV}
-                                style={{
-                                    padding: '12px 24px',
-                                    backgroundColor: (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) ? '#2563eb' : '#d1d5db',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    fontSize: '15px',
-                                    fontWeight: '600',
-                                    cursor: (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) ? 'pointer' : 'not-allowed',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px'
-                                }}
-                            >
-                                <SendIcon />
-                                Senden
-                            </button>
-                        </div>
-                        
-                        <div style={{ marginTop: '12px', textAlign: 'center', fontSize: '12px', color: '#6b7280' }}>
-                            Powered by Claude · Jobs von Bundesagentur für Arbeit
-                        </div>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".pdf,.doc,.docx,.txt"
+                            onChange={handleCVUpload}
+                            style={{ display: 'none' }}
+                        />
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploadingCV || isLoading}
+                            style={{
+                                padding: '12px 20px',
+                                backgroundColor: isUploadingCV ? '#ccc' : '#667eea',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: isUploadingCV ? 'not-allowed' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => !isUploadingCV && (e.target.style.backgroundColor = '#5568d3')}
+                            onMouseLeave={(e) => !isUploadingCV && (e.target.style.backgroundColor = '#667eea')}
+                        >
+                            <UploadIcon />
+                            {isUploadingCV ? 'Lädt...' : 'CV hochladen'}
+                        </button>
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                            placeholder="Nachricht an Sam..."
+                            disabled={isLoading}
+                            style={{
+                                flex: 1,
+                                padding: '12px 16px',
+                                border: '1px solid #e0e0e0',
+                                borderRadius: '8px',
+                                fontSize: '14px',
+                                outline: 'none'
+                            }}
+                        />
+                        <button
+                            onClick={sendMessage}
+                            disabled={isLoading || !input.trim()}
+                            style={{
+                                padding: '12px 24px',
+                                backgroundColor: (isLoading || !input.trim()) ? '#ccc' : '#667eea',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: (isLoading || !input.trim()) ? 'not-allowed' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => (!isLoading && input.trim()) && (e.target.style.backgroundColor = '#5568d3')}
+                            onMouseLeave={(e) => (!isLoading && input.trim()) && (e.target.style.backgroundColor = '#667eea')}
+                        >
+                            <SendIcon />
+                            Senden
+                        </button>
                     </div>
                 </div>
             );
         };
 
+        // Render the app
         const root = createRoot(document.getElementById('root'));
         root.render(<SamCareerCoach />);
     </script>
-
-    <style>
-        .bounce-dot {
-            width: 8px;
-            height: 8px;
-            borderRadius: 50%;
-            backgroundColor: #2563eb;
-            animation: bounce 1.4s infinite ease-in-out both;
-        }
-
-        @keyframes bounce {
-            0%, 80%, 100% { 
-                transform: scale(0);
-            }
-            40% { 
-                transform: scale(1);
-            }
-        }
-    </style>
 </body>
 </html>

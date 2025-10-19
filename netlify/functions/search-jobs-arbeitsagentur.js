@@ -25,6 +25,11 @@ exports.handler = async (event, context) => {
   try {
     const { query, location, radius = 100, size = 25 } = JSON.parse(event.body);
 
+    // ========================================
+    // ✨ NEW: INPUT VALIDATION (ADDED)
+    // ========================================
+
+    // 1. Validate query (required)
     if (!query) {
       return {
         statusCode: 400,
@@ -32,6 +37,64 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({ error: 'Query parameter is required' })
       };
     }
+
+    if (typeof query !== 'string') {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Query must be a string' })
+      };
+    }
+
+    // Limit query length
+    if (query.length > 200) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Query too long. Maximum 200 characters.' })
+      };
+    }
+
+    // 2. Validate location (optional, but if provided must be valid)
+    if (location !== undefined && location !== null && location !== '') {
+      if (typeof location !== 'string') {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Location must be a string' })
+        };
+      }
+
+      if (location.length > 100) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Location too long. Maximum 100 characters.' })
+        };
+      }
+    }
+
+    // 3. Validate radius
+    if (typeof radius !== 'number' || radius < 0 || radius > 200) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Radius must be a number between 0 and 200' })
+      };
+    }
+
+    // 4. Validate size
+    if (typeof size !== 'number' || size < 1 || size > 100) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Size must be a number between 1 and 100' })
+      };
+    }
+
+    // ========================================
+    // EXISTING CODE BELOW - UNCHANGED
+    // ========================================
 
     console.log('Arbeitsagentur API search:', { query, location, radius, size });
 

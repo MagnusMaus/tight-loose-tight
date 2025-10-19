@@ -9,6 +9,82 @@ exports.handler = async (event, context) => {
   try {
     const { fileData, fileName, fileType } = JSON.parse(event.body);
     
+    // ========================================
+    // ✨ NEW: INPUT VALIDATION (ADDED)
+    // ========================================
+    
+    // 1. Check required fields
+    if (!fileData) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'Missing required field: fileData' })
+      };
+    }
+    
+    if (!fileName) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'Missing required field: fileName' })
+      };
+    }
+    
+    if (!fileType) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'Missing required field: fileType' })
+      };
+    }
+    
+    // 2. Validate file type
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain'
+    ];
+    
+    if (!allowedTypes.includes(fileType)) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ 
+          error: 'Invalid file type. Only PDF, DOC, DOCX, and TXT files are allowed.' 
+        })
+      };
+    }
+    
+    // 3. Validate file size (base64 is ~33% larger than original file)
+    const estimatedSizeInBytes = (fileData.length * 3) / 4;
+    const maxSizeInBytes = 10 * 1024 * 1024; // 10MB limit
+    
+    if (estimatedSizeInBytes > maxSizeInBytes) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ 
+          error: 'File too large. Maximum file size is 10MB.' 
+        })
+      };
+    }
+    
+    // 4. Validate filename (prevent path traversal attacks)
+    if (fileName.includes('..') || fileName.includes('/') || fileName.includes('\\')) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'Invalid filename' })
+      };
+    }
+    
+    // 5. Validate base64 format
+    if (typeof fileData !== 'string') {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'File data must be a base64 string' })
+      };
+    }
+    
+    // ========================================
+    // EXISTING CODE BELOW - UNCHANGED
+    // ========================================
+    
     // Claude API Call mit PDF
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

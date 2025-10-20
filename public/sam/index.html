@@ -1239,59 +1239,137 @@ Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
                                             <div style={{
                                                 display: 'flex',
                                                 flexDirection: 'column',
-                                                gap: '16px',
-                                                marginTop: '16px'
+                                                gap: '20px',
+                                                marginTop: '20px'
                                             }}>
                                                 {jobCards.map((job, idx) => (
                                                     <div
                                                         key={job.id || idx}
                                                         style={{
                                                             backgroundColor: 'white',
-                                                            borderRadius: '12px',
-                                                            padding: '20px',
-                                                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                                                            border: '2px solid #e5e7eb'
+                                                            borderRadius: '16px',
+                                                            padding: '24px',
+                                                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                                                            border: '2px solid #e5e7eb',
+                                                            maxWidth: '85%',
+                                                            margin: '0 auto',
+                                                            width: '100%'
                                                         }}
                                                     >
+                                                        {/* Fit Score Badge */}
+                                                        <div style={{
+                                                            display: 'inline-block',
+                                                            backgroundColor: job.fitScore >= 80 ? '#10b981' : job.fitScore >= 60 ? '#f59e0b' : '#ef4444',
+                                                            color: 'white',
+                                                            padding: '6px 14px',
+                                                            borderRadius: '20px',
+                                                            fontSize: '14px',
+                                                            fontWeight: '600',
+                                                            marginBottom: '12px'
+                                                        }}>
+                                                            {job.fitScore}% Match
+                                                        </div>
+
+                                                        {/* Job Title */}
                                                         <h3 style={{
-                                                            fontSize: '18px',
-                                                            fontWeight: '700',
-                                                            color: '#111827',
-                                                            marginBottom: '8px'
+                                                            margin: '0 0 8px 0',
+                                                            fontSize: '20px',
+                                                            fontWeight: '600',
+                                                            color: '#1f2937'
                                                         }}>
                                                             {job.title}
                                                         </h3>
+
+                                                        {/* Company, Location, Salary */}
                                                         <div style={{
+                                                            display: 'flex',
+                                                            gap: '16px',
                                                             fontSize: '14px',
                                                             color: '#6b7280',
-                                                            marginBottom: '12px'
-                                                        }}>
-                                                            {job.company} · {job.location}
-                                                        </div>
-                                                        <p style={{
-                                                            fontSize: '14px',
-                                                            color: '#374151',
                                                             marginBottom: '16px',
-                                                            lineHeight: '1.6'
+                                                            flexWrap: 'wrap'
+                                                        }}>
+                                                            <span>🏢 {job.company}</span>
+                                                            <span>📍 {job.location}</span>
+                                                            {job.salary && <span>💰 {job.salary}</span>}
+                                                        </div>
+
+                                                        {/* Description */}
+                                                        <p style={{
+                                                            fontSize: '15px',
+                                                            lineHeight: '1.6',
+                                                            color: '#374151',
+                                                            marginBottom: '16px'
                                                         }}>
                                                             {job.description}
                                                         </p>
+
+                                                        {/* Pros */}
+                                                        {job.pros && job.pros.length > 0 && (
+                                                            <div style={{ marginBottom: '12px' }}>
+                                                                <div style={{
+                                                                    fontSize: '14px',
+                                                                    fontWeight: '600',
+                                                                    color: '#10b981',
+                                                                    marginBottom: '6px'
+                                                                }}>
+                                                                    ✅ Was passt:
+                                                                </div>
+                                                                <ul style={{
+                                                                    margin: 0,
+                                                                    paddingLeft: '20px',
+                                                                    fontSize: '14px',
+                                                                    color: '#374151'
+                                                                }}>
+                                                                    {job.pros.map((pro, i) => (
+                                                                        <li key={i} style={{ marginBottom: '4px' }}>{pro}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Cons */}
+                                                        {job.cons && job.cons.length > 0 && (
+                                                            <div style={{ marginBottom: '20px' }}>
+                                                                <div style={{
+                                                                    fontSize: '14px',
+                                                                    fontWeight: '600',
+                                                                    color: '#f59e0b',
+                                                                    marginBottom: '6px'
+                                                                }}>
+                                                                    ⚠️ Beachte:
+                                                                </div>
+                                                                <ul style={{
+                                                                    margin: 0,
+                                                                    paddingLeft: '20px',
+                                                                    fontSize: '14px',
+                                                                    color: '#374151'
+                                                                }}>
+                                                                    {job.cons.map((con, i) => (
+                                                                        <li key={i} style={{ marginBottom: '4px' }}>{con}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Action Buttons */}
                                                         <div style={{
                                                             display: 'flex',
                                                             gap: '12px',
+                                                            marginTop: '20px',
                                                             flexWrap: 'wrap'
                                                         }}>
                                                             <button
-                                                                onClick={() => window.open(job.url, '_blank')}
+                                                                onClick={() => handleJobAction(job.id, 'apply')}
                                                                 style={{
                                                                     flex: '1',
-                                                                    minWidth: '120px',
-                                                                    padding: '10px 16px',
-                                                                    backgroundColor: '#10b981',
+                                                                    minWidth: '140px',
+                                                                    padding: '12px 20px',
+                                                                    backgroundColor: '#2563eb',
                                                                     color: 'white',
                                                                     border: 'none',
                                                                     borderRadius: '8px',
-                                                                    fontSize: '14px',
+                                                                    fontSize: '15px',
                                                                     fontWeight: '600',
                                                                     cursor: 'pointer',
                                                                     display: 'flex',
@@ -1305,16 +1383,16 @@ Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
                                                             </button>
                                                             
                                                             <button
-                                                                onClick={() => handleJobAction(job, 'save')}
+                                                                onClick={() => handleJobAction(job.id, 'save')}
                                                                 style={{
                                                                     flex: '1',
-                                                                    minWidth: '120px',
-                                                                    padding: '10px 16px',
-                                                                    backgroundColor: '#3b82f6',
+                                                                    minWidth: '140px',
+                                                                    padding: '12px 20px',
+                                                                    backgroundColor: '#10b981',
                                                                     color: 'white',
                                                                     border: 'none',
                                                                     borderRadius: '8px',
-                                                                    fontSize: '14px',
+                                                                    fontSize: '15px',
                                                                     fontWeight: '600',
                                                                     cursor: 'pointer',
                                                                     display: 'flex',
@@ -1326,23 +1404,28 @@ Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
                                                                 <BookmarkPlusIcon />
                                                                 Speichern & weiter
                                                             </button>
-
+                                                            
                                                             <button
-                                                                onClick={() => handleJobAction(job, 'skip')}
+                                                                onClick={() => handleJobAction(job.id, 'reject')}
                                                                 style={{
                                                                     flex: '1',
-                                                                    minWidth: '120px',
-                                                                    padding: '10px 16px',
-                                                                    backgroundColor: '#6b7280',
+                                                                    minWidth: '140px',
+                                                                    padding: '12px 20px',
+                                                                    backgroundColor: '#ef4444',
                                                                     color: 'white',
                                                                     border: 'none',
                                                                     borderRadius: '8px',
-                                                                    fontSize: '14px',
+                                                                    fontSize: '15px',
                                                                     fontWeight: '600',
-                                                                    cursor: 'pointer'
+                                                                    cursor: 'pointer',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    gap: '8px'
                                                                 }}
                                                             >
-                                                                Nicht interessiert
+                                                                <Trash2Icon />
+                                                                Verwerfen
                                                             </button>
                                                         </div>
                                                     </div>

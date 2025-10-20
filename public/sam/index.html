@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- TabiCoach v2.0 - Professional Chat Design - Last updated: 2025 -->
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -16,7 +17,7 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: #ffffff;
+            background-color: #f9fafb;
         }
         
         #root {
@@ -140,10 +141,6 @@
 
             const scrollToBottom = () => {
                 messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-            };
-
-            const scrollToChat = () => {
-                chatSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
             };
 
             useEffect(() => {
@@ -470,9 +467,8 @@ Dein Ziel: Den PERFEKTEN nächsten Schritt für diesen Menschen finden. 🎯`;
                 await sendToAPI([...messages, feedbackMessage]);
             };
 
-            if (!showChat) {
-                return (
-                    <div style={{ backgroundColor: '#ffffff' }}>
+            return (
+                <div style={{ backgroundColor: '#f9fafb' }}>
                         {/* Header */}
                         <header style={{
                             padding: '20px 40px',
@@ -621,9 +617,8 @@ Dein Ziel: Den PERFEKTEN nächsten Schritt für diesen Menschen finden. 🎯`;
 
                         {/* Chat Section */}
                         <section ref={chatSectionRef} style={{
-                            backgroundColor: '#f3f4f6',
-                            padding: '60px 20px 80px',
-                            minHeight: '100vh'
+                            backgroundColor: '#f9fafb',
+                            padding: '60px 20px 80px'
                         }}>
                             <div style={{
                                 maxWidth: '900px',
@@ -632,106 +627,121 @@ Dein Ziel: Den PERFEKTEN nächsten Schritt für diesen Menschen finden. 🎯`;
                                 {/* Chat Container */}
                                 <div style={{
                                     backgroundColor: 'white',
-                                    borderRadius: '16px',
-                                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                                    overflow: 'hidden'
+                                    borderRadius: '20px',
+                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
+                                    overflow: 'hidden',
+                                    border: '1px solid #e5e7eb'
                                 }}>
-                                    {/* Chat Header */}
+                                    {/* Chat Header - Clean and Minimal */}
                                     <div style={{
-                                        padding: '20px 24px',
+                                        padding: '24px 32px',
                                         backgroundColor: '#3b82f6',
                                         color: 'white',
                                         display: 'flex',
                                         justifyContent: 'space-between',
-                                        alignItems: 'center'
+                                        alignItems: 'center',
+                                        borderRadius: '20px 20px 0 0'
                                     }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                                             <div style={{
-                                                width: '44px',
-                                                height: '44px',
+                                                width: '48px',
+                                                height: '48px',
                                                 backgroundColor: 'white',
                                                 borderRadius: '50%',
                                                 display: 'flex',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',
-                                                fontSize: '24px'
+                                                fontSize: '24px',
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                                             }}>
                                                 🤖
                                             </div>
                                             <div>
-                                                <div style={{ fontWeight: '600', fontSize: '18px' }}>Sam - Dein Karriere-Coach</div>
-                                                <div style={{ fontSize: '13px', opacity: 0.9 }}>Powered by Bundesagentur für Arbeit</div>
+                                                <div style={{ fontWeight: '600', fontSize: '17px', marginBottom: '2px' }}>Sam - Dein Karriere-Coach</div>
+                                                <div style={{ fontSize: '12px', opacity: 0.95 }}>Powered by Bundesagentur für Arbeit</div>
                                             </div>
                                         </div>
 
-                                        <button
-                                            onClick={() => setShowSavedJobs(!showSavedJobs)}
-                                            style={{
-                                                padding: '10px 20px',
-                                                backgroundColor: 'rgba(255,255,255,0.2)',
-                                                color: 'white',
-                                                border: '1px solid rgba(255,255,255,0.3)',
-                                                borderRadius: '8px',
-                                                fontSize: '14px',
-                                                fontWeight: '600',
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '8px',
-                                                transition: 'background-color 0.2s'
-                                            }}
-                                            onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(255,255,255,0.3)'}
-                                            onMouseOut={(e) => e.target.style.backgroundColor = 'rgba(255,255,255,0.2)'}
-                                        >
-                                            <BookmarkPlusIcon />
-                                            Gespeicherte Jobs ({savedJobs.length})
-                                        </button>
+                                        {savedJobs.length > 0 && (
+                                            <button
+                                                onClick={() => setShowSavedJobs(!showSavedJobs)}
+                                                style={{
+                                                    padding: '10px 18px',
+                                                    backgroundColor: 'white',
+                                                    color: '#3b82f6',
+                                                    border: 'none',
+                                                    borderRadius: '10px',
+                                                    fontSize: '14px',
+                                                    fontWeight: '600',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '8px',
+                                                    transition: 'all 0.2s',
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                                }}
+                                                onMouseOver={(e) => {
+                                                    e.target.style.transform = 'translateY(-1px)';
+                                                    e.target.style.boxShadow = '0 4px 6px rgba(0,0,0,0.15)';
+                                                }}
+                                                onMouseOut={(e) => {
+                                                    e.target.style.transform = 'translateY(0)';
+                                                    e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                                                }}
+                                            >
+                                                <BookmarkPlusIcon />
+                                                Gespeicherte Jobs ({savedJobs.length})
+                                            </button>
+                                        )}
                                     </div>
 
                                     {/* Messages Area */}
                                     <div style={{
-                                        padding: '32px 24px',
-                                        minHeight: '400px',
-                                        maxHeight: '600px',
+                                        padding: '40px 32px',
+                                        minHeight: '450px',
+                                        maxHeight: '650px',
                                         overflowY: 'auto',
-                                        backgroundColor: '#f9fafb'
+                                        backgroundColor: '#ffffff'
                                     }}>
                                         {messages.map((msg, idx) => (
                                             <div
                                                 key={idx}
                                                 style={{
                                                     display: 'flex',
-                                                    marginBottom: '24px',
+                                                    marginBottom: '28px',
                                                     justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                                                    gap: '12px'
+                                                    gap: '14px',
+                                                    alignItems: 'flex-start'
                                                 }}
                                             >
                                                 {msg.role === 'assistant' && (
                                                     <div style={{
-                                                        width: '36px',
-                                                        height: '36px',
+                                                        width: '40px',
+                                                        height: '40px',
                                                         backgroundColor: '#3b82f6',
                                                         borderRadius: '50%',
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'center',
                                                         flexShrink: 0,
-                                                        fontSize: '18px'
+                                                        fontSize: '20px',
+                                                        boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)'
                                                     }}>
                                                         🤖
                                                     </div>
                                                 )}
                                                 <div style={{
-                                                    maxWidth: '75%',
-                                                    padding: '16px 20px',
-                                                    borderRadius: '12px',
-                                                    backgroundColor: msg.role === 'user' ? '#3b82f6' : 'white',
-                                                    color: msg.role === 'user' ? 'white' : '#111827',
-                                                    boxShadow: msg.role === 'user' ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 2px 4px rgba(0,0,0,0.1)',
+                                                    maxWidth: '70%',
+                                                    padding: '18px 22px',
+                                                    borderRadius: '16px',
+                                                    backgroundColor: msg.role === 'user' ? '#f3f4f6' : '#f9fafb',
+                                                    color: '#111827',
+                                                    border: '1px solid #e5e7eb',
                                                     whiteSpace: 'pre-wrap',
                                                     wordBreak: 'break-word',
                                                     fontSize: '15px',
-                                                    lineHeight: '1.6'
+                                                    lineHeight: '1.65',
+                                                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
                                                 }}>
                                                     {msg.content}
                                                 </div>
@@ -740,28 +750,30 @@ Dein Ziel: Den PERFEKTEN nächsten Schritt für diesen Menschen finden. 🎯`;
 
                                         {/* Loading Indicator */}
                                         {(isLoading || isSearchingJobs) && (
-                                            <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+                                            <div style={{ display: 'flex', gap: '14px', marginBottom: '28px', alignItems: 'flex-start' }}>
                                                 <div style={{
-                                                    width: '36px',
-                                                    height: '36px',
+                                                    width: '40px',
+                                                    height: '40px',
                                                     backgroundColor: '#3b82f6',
                                                     borderRadius: '50%',
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
                                                     flexShrink: 0,
-                                                    fontSize: '18px'
+                                                    fontSize: '20px',
+                                                    boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)'
                                                 }}>
                                                     🤖
                                                 </div>
                                                 <div style={{
-                                                    padding: '16px 20px',
-                                                    borderRadius: '12px',
-                                                    backgroundColor: 'white',
-                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                                    padding: '18px 22px',
+                                                    borderRadius: '16px',
+                                                    backgroundColor: '#f9fafb',
+                                                    border: '1px solid #e5e7eb',
                                                     display: 'flex',
-                                                    gap: '8px',
-                                                    alignItems: 'center'
+                                                    gap: '10px',
+                                                    alignItems: 'center',
+                                                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
                                                 }}>
                                                     <div className="bounce-dot" style={{ animationDelay: '0s' }}></div>
                                                     <div className="bounce-dot" style={{ animationDelay: '0.2s' }}></div>
@@ -894,11 +906,11 @@ Dein Ziel: Den PERFEKTEN nächsten Schritt für diesen Menschen finden. 🎯`;
 
                                     {/* Input Area */}
                                     <div style={{
-                                        padding: '20px 24px',
+                                        padding: '24px 32px 28px',
                                         backgroundColor: 'white',
-                                        borderTop: '1px solid #e5e7eb'
+                                        borderTop: '1px solid #f3f4f6'
                                     }}>
-                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+                                        <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
                                             <input
                                                 type="file"
                                                 ref={fileInputRef}
@@ -912,15 +924,27 @@ Dein Ziel: Den PERFEKTEN nächsten Schritt für diesen Menschen finden. 🎯`;
                                                 disabled={isLoading || isSearchingJobs || isUploadingCV}
                                                 title="Lebenslauf hochladen"
                                                 style={{
-                                                    padding: '12px',
-                                                    backgroundColor: '#f3f4f6',
-                                                    border: '1px solid #d1d5db',
-                                                    borderRadius: '8px',
+                                                    padding: '14px',
+                                                    backgroundColor: '#ffffff',
+                                                    border: '1.5px solid #e5e7eb',
+                                                    borderRadius: '12px',
                                                     cursor: (isLoading || isSearchingJobs || isUploadingCV) ? 'not-allowed' : 'pointer',
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
-                                                    opacity: (isLoading || isSearchingJobs || isUploadingCV) ? 0.5 : 1
+                                                    opacity: (isLoading || isSearchingJobs || isUploadingCV) ? 0.5 : 1,
+                                                    transition: 'all 0.2s',
+                                                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+                                                }}
+                                                onMouseOver={(e) => {
+                                                    if (!isLoading && !isSearchingJobs && !isUploadingCV) {
+                                                        e.target.style.borderColor = '#3b82f6';
+                                                        e.target.style.backgroundColor = '#f8fafc';
+                                                    }
+                                                }}
+                                                onMouseOut={(e) => {
+                                                    e.target.style.borderColor = '#e5e7eb';
+                                                    e.target.style.backgroundColor = '#ffffff';
                                                 }}
                                             >
                                                 <FileUpIcon />
@@ -939,16 +963,21 @@ Dein Ziel: Den PERFEKTEN nächsten Schritt für diesen Menschen finden. 🎯`;
                                                 disabled={isLoading || isSearchingJobs || isUploadingCV}
                                                 style={{
                                                     flex: 1,
-                                                    padding: '12px 16px',
-                                                    borderRadius: '8px',
-                                                    border: '1px solid #d1d5db',
+                                                    padding: '14px 18px',
+                                                    borderRadius: '12px',
+                                                    border: '1.5px solid #e5e7eb',
                                                     fontSize: '15px',
                                                     resize: 'none',
-                                                    minHeight: '48px',
+                                                    minHeight: '52px',
                                                     maxHeight: '120px',
                                                     fontFamily: 'inherit',
-                                                    outline: 'none'
+                                                    outline: 'none',
+                                                    transition: 'border-color 0.2s',
+                                                    backgroundColor: '#ffffff',
+                                                    color: '#111827'
                                                 }}
+                                                onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                                                onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                                                 rows={1}
                                             />
 
@@ -956,17 +985,33 @@ Dein Ziel: Den PERFEKTEN nächsten Schritt für diesen Menschen finden. 🎯`;
                                                 onClick={handleSend}
                                                 disabled={!input.trim() || isLoading || isSearchingJobs || isUploadingCV}
                                                 style={{
-                                                    padding: '12px 24px',
-                                                    backgroundColor: (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) ? '#3b82f6' : '#d1d5db',
-                                                    color: 'white',
+                                                    padding: '14px 26px',
+                                                    backgroundColor: (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) ? '#3b82f6' : '#e5e7eb',
+                                                    color: (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) ? 'white' : '#9ca3af',
                                                     border: 'none',
-                                                    borderRadius: '8px',
+                                                    borderRadius: '12px',
                                                     fontSize: '15px',
                                                     fontWeight: '600',
                                                     cursor: (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) ? 'pointer' : 'not-allowed',
                                                     display: 'flex',
                                                     alignItems: 'center',
-                                                    gap: '8px'
+                                                    gap: '8px',
+                                                    transition: 'all 0.2s',
+                                                    boxShadow: (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) ? '0 2px 4px rgba(59, 130, 246, 0.2)' : 'none'
+                                                }}
+                                                onMouseOver={(e) => {
+                                                    if (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) {
+                                                        e.target.style.backgroundColor = '#2563eb';
+                                                        e.target.style.transform = 'translateY(-1px)';
+                                                        e.target.style.boxShadow = '0 4px 6px rgba(59, 130, 246, 0.3)';
+                                                    }
+                                                }}
+                                                onMouseOut={(e) => {
+                                                    if (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) {
+                                                        e.target.style.backgroundColor = '#3b82f6';
+                                                        e.target.style.transform = 'translateY(0)';
+                                                        e.target.style.boxShadow = '0 2px 4px rgba(59, 130, 246, 0.2)';
+                                                    }
                                                 }}
                                             >
                                                 <SendIcon />
@@ -974,7 +1019,7 @@ Dein Ziel: Den PERFEKTEN nächsten Schritt für diesen Menschen finden. 🎯`;
                                             </button>
                                         </div>
                                         
-                                        <div style={{ marginTop: '12px', textAlign: 'center', fontSize: '12px', color: '#6b7280' }}>
+                                        <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '12px', color: '#9ca3af' }}>
                                             Powered by Claude · Jobs von Bundesagentur für Arbeit
                                         </div>
                                     </div>
@@ -1114,9 +1159,6 @@ Dein Ziel: Den PERFEKTEN nächsten Schritt für diesen Menschen finden. 🎯`;
                         )}
                     </div>
                 );
-            }
-
-            return null;
         };
 
         const root = createRoot(document.getElementById('root'));

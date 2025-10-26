@@ -1,5 +1,5 @@
 // Loading Indicator Component
-const LoadingIndicator = ({ isSearchingJobs = false }) => {
+const LoadingIndicator = ({ isSearchingJobs = false, isUploadingCV = false }) => {
     return React.createElement('div', { className: 'loading-indicator' }, [
         React.createElement('div', { 
             key: 'avatar',
@@ -27,7 +27,7 @@ const LoadingIndicator = ({ isSearchingJobs = false }) => {
             React.createElement('span', { 
                 key: 'text',
                 className: 'loading-text'
-            }, isSearchingJobs ? 'Durchsuche Jobbörse...' : 'Sam tippt...')
+            }, isUploadingCV ? 'Analysiere Lebenslauf...' : isSearchingJobs ? 'Durchsuche Jobbörse...' : 'Sam tippt...')
         ])
     ]);
 };

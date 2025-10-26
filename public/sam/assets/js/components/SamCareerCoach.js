@@ -126,19 +126,20 @@ WENN DU JOBS ZUR ANALYSE BEKOMMST:
 - Wähle den BESTEN aus
 - Erstelle NUR eine JOB_CARD - KEINEN TRIGGER_SEARCH!
 
-Format:
+WICHTIG: Gib NUR die JOB_CARD aus, KEINEN zusätzlichen Chat-Text!
+Alle Informationen gehören IN die JOB_CARD (description, pros, cons).
 
-[Deine persönliche Analyse warum dieser Job passt]
+Format:
 
 [JOB_CARD:{
   "title": "Job Titel",
   "company": "Firma", 
   "location": "Ort",
   "salary": "Gehalt",
-  "description": "2-3 Sätze",
+  "description": "Deine ausführliche persönliche Analyse warum dieser Job passt - 3-4 Sätze mit psychografischem Fit",
   "fitScore": 85,
-  "pros": ["Passt weil..."],
-  "cons": ["Beachte..."],
+  "pros": ["Spezifische Gründe warum es passt basierend auf Persönlichkeitsprofil"],
+  "cons": ["Was beachtenswert ist oder nicht optimal passt"],
   "applyUrl": "https://..."
 }]
 
@@ -281,8 +282,10 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
             setShownJobUrls(prev => new Set([...prev, jobKey]));
             console.log(`✅ Added to shown jobs: "${parsed.jobData.title}"`);
             
-            if (parsed.cleanText) {
-                console.log('💬 Adding Sam\'s analysis message to chat');
+            // WICHTIG: Kein zusätzlicher Chat-Text mehr - alles ist in der Job Card
+            if (parsed.cleanText && parsed.cleanText.trim().length > 0) {
+                console.log('⚠️ WARNING: Sam sent text before JOB_CARD (should not happen):', parsed.cleanText);
+                // Trotzdem anzeigen für Debugging, aber das sollte nicht passieren
                 setMessages(prev => [...prev, { role: 'assistant', content: parsed.cleanText }]);
             }
             return true;
@@ -377,6 +380,12 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
 
         setIsUploadingCV(true);
         console.log('📄 CV upload started');
+        
+        // Show immediate feedback about CV processing
+        setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: 'Ich lese deinen Lebenslauf... Das kann einen Moment dauern. ⏳'
+        }]);
         
         try {
             const data = await CVParserService.parseCV(file);

@@ -102,18 +102,22 @@ DEINE AUFGABE:
 2. Wähle den BESTEN Job basierend auf dem Persönlichkeitsprofil
 3. Erstelle EINE JOB_CARD für diesen Job
 
-WICHTIG: 
-✅ Erstelle NUR eine JOB_CARD
+KRITISCH WICHTIG: 
+✅ Erstelle NUR eine JOB_CARD - KEINEN zusätzlichen Chat-Text!
+✅ Alle deine Analyse gehört IN die JOB_CARD (description, pros, cons)
 ❌ KEINEN TRIGGER_SEARCH verwenden!
+❌ KEINEN Text vor oder nach der JOB_CARD!
 ❌ Dieser Prompt bedeutet NICHT "suche weitere Jobs"
-❌ Du musst NUR den besten der 5 gegebenen Jobs empfehlen
 
 Format:
-[Deine persönliche Analyse des Jobs - 2-3 Sätze]
+[JOB_CARD:{
+  "description": "Hier deine ausführliche persönliche Analyse warum dieser Job perfekt passt - 3-4 Sätze mit psychografischem Fit",
+  "pros": ["Spezifische Gründe basierend auf Persönlichkeitsprofil"],
+  "cons": ["Was beachtenswert ist"],
+  ...
+}]
 
-[JOB_CARD:{...}]
-
-Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
+Begründe IN der JOB_CARD warum dieser Job zum Persönlichkeitsprofil passt.`;
 
         const updatedMessages = [...currentMessages, {
             role: 'user',

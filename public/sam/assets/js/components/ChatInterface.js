@@ -72,9 +72,10 @@ const ChatInterface = ({
                         ),
 
                         // Loading Indicator
-                        (isLoading || isSearchingJobs) && React.createElement(LoadingIndicator, {
+                        (isLoading || isSearchingJobs || isUploadingCV) && React.createElement(LoadingIndicator, {
                             key: 'loading',
-                            isSearchingJobs
+                            isSearchingJobs,
+                            isUploadingCV
                         }),
 
                         // Job Cards

@@ -54,7 +54,7 @@ const SavedJobsPanel = ({ savedJobs, showSavedJobs, onClose, onRemoveJob }) => {
                             React.createElement('button', {
                                 key: 'apply',
                                 className: 'saved-job-apply',
-                                onClick: () => window.open(job.url || job.applyUrl, '_blank')
+                                onClick: () => window.open(job.applyUrl || job.url, '_blank')
                             }, [
                                 React.createElement(Icons.CheckCircle, { key: 'icon' }),
                                 'Bewerben'

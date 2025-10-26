@@ -83,10 +83,18 @@ PSYCHOGRAFISCHER FIT (50%): Werte-Alignment, Arbeitstyp-Match, Stress-Faktoren
 UMFELD-FIT (20%): Unternehmenskultur, Team-Struktur, Branche
 
 JOB-SUCHE BEST PRACTICES:
-- Verwende SPEZIFISCHE psychografisch-basierte Suchbegriffe: "Operations Director", "Head of Marketing", etc.
+- Verwende DEUTSCHE Suchbegriffe für die Arbeitsagentur API: "Betriebsleiter", "Change Manager", "Leiter Operations"
+- Vermeide englische Titel wie "COO" oder "Director" - nutze deutsche Entsprechungen
+- Psychografisch-basierte Suche: Denke an verwandte Rollen die zum Persönlichkeitsprofil passen
 - Location: IMMER eine konkrete deutsche Stadt angeben ("Berlin", "München", "Hamburg", "Hannover")
 - NIEMALS location leer lassen - die API verlangt konkrete Städte!
 - Das System erweitert automatisch: spezifisch → breit, lokal → deutschlandweit
+
+DEUTSCHE BEGRIFFE für internationale Rollen:
+- COO → "Betriebsleiter", "Geschäftsführer Operations" 
+- Head of Consulting → "Leiter Beratung", "Change Manager"
+- Operations Director → "Betriebsleiter", "Operations Manager"
+- Business Development → "Geschäftsentwicklung", "Vertriebsleiter"
 
 PROAKTIVES VERHALTEN:
 - Starte mit psychografisch präzisen Queries basierend auf dem Nutzerprofil
@@ -311,12 +319,33 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
             );
             
             if (!foundJobs) {
-                setMessages(prev => [...prev, {
-                    role: 'assistant',
-                    content: `Ich habe sehr gründlich gesucht, aber leider keine passenden Stellen gefunden. Lass uns gemeinsam überlegen: Könnten wir das Suchprofil etwas anpassen? Vielleicht verwandte Rollen oder andere Branchen einbeziehen? 🤔`
-                }]);
-                setIsSearchingJobs(false);
-                return null;
+                // Try one more search with broader German terms before giving up
+                console.log('🔄 No jobs found - trying broader German search terms...');
+                const fallbackQueries = ['Manager', 'Leiter', 'Berater', 'Führungskraft'];
+                
+                for (const fallbackQuery of fallbackQueries) {
+                    console.log(`🔄 Fallback search: ${fallbackQuery}`);
+                    const fallbackJobs = await JobSearchService.searchJobsIntelligent(
+                        fallbackQuery, 
+                        location, 
+                        currentMessages, 
+                        shownJobUrls
+                    );
+                    
+                    if (fallbackJobs) {
+                        foundJobs = fallbackJobs;
+                        break;
+                    }
+                }
+                
+                if (!foundJobs) {
+                    setMessages(prev => [...prev, {
+                        role: 'assistant',
+                        content: `Ich habe sehr gründlich in verschiedenen Kategorien gesucht, aber momentan keine passenden Stellen gefunden. Das kann an der spezifischen Marktsituation liegen. Lass uns dein Profil etwas breiter fassen - welche verwandten Rollen würden dich auch interessieren? 🤔`
+                    }]);
+                    setIsSearchingJobs(false);
+                    return null;
+                }
             }
             
             // Send jobs to Sam for analysis

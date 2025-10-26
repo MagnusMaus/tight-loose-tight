@@ -117,6 +117,27 @@ In welcher beruflichen Situation befindest du dich gerade?`;
         const variants = [query];
         const words = query.split(' ').filter(w => w.length > 2);
         
+        // Add German equivalent translations for international terms
+        const germanEquivalents = {
+            'COO': ['Betriebsleiter', 'Geschäftsführer', 'Prokurist', 'Operations Manager'],
+            'Chief Operating Officer': ['Betriebsleiter', 'Geschäftsführer Operations', 'Leiter Operations'],
+            'Head of Inhouse Consulting': ['Leiter Interne Beratung', 'Manager Consulting', 'Berater', 'Change Manager'],
+            'Operations Director': ['Betriebsleiter', 'Operations Manager', 'Leiter Betrieb', 'Produktionsleiter'],
+            'Change Manager': ['Change Manager', 'Transformation Manager', 'Organisationsentwickler'],
+            'Business Development': ['Geschäftsentwicklung', 'Business Development', 'Vertriebsleiter'],
+            'Consulting': ['Beratung', 'Unternehmensberatung', 'Berater'],
+            'Director': ['Leiter', 'Direktor', 'Manager'],
+            'Manager': ['Manager', 'Leiter', 'Führungskraft']
+        };
+        
+        // Check for German equivalents
+        Object.keys(germanEquivalents).forEach(key => {
+            if (query.toLowerCase().includes(key.toLowerCase())) {
+                variants.push(...germanEquivalents[key]);
+            }
+        });
+        
+        // Original word-based variants
         if (words.length >= 3) {
             variants.push(words.slice(0, 2).join(' '));
             variants.push(words[0] + ' ' + words[words.length - 1]);

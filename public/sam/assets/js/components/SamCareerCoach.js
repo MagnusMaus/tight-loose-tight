@@ -329,26 +329,37 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
             const parsed = Helpers.parseJobCard(assistantMessage);
             
             if (parsed) {
-                const newCard = { ...parsed.jobData, id: Helpers.generateId() };
-                setJobCards(prev => [...prev, newCard]);
-                
-                // Track this job URL as "shown"
-                const jobKey = parsed.jobData.applyUrl || parsed.jobData.url || `${parsed.jobData.title}_${parsed.jobData.company}`;
-                setShownJobUrls(prev => new Set([...prev, jobKey]));
-                
-                if (parsed.cleanText) {
-                    setMessages(prev => [...prev, { role: 'assistant', content: parsed.cleanText }]);
+                // Only accept jobs with 70%+ fit score
+                if (parsed.jobData.fitScore >= 70) {
+                    const newCard = { ...parsed.jobData, id: Helpers.generateId() };
+                    setJobCards(prev => [...prev, newCard]);
+                    
+                    // Track this job URL as "shown"
+                    const jobKey = parsed.jobData.applyUrl || parsed.jobData.url || `${parsed.jobData.title}_${parsed.jobData.company}`;
+                    setShownJobUrls(prev => new Set([...prev, jobKey]));
+                    
+                    if (parsed.cleanText) {
+                        setMessages(prev => [...prev, { role: 'assistant', content: parsed.cleanText }]);
+                    }
+                } else {
+                    console.log(`🚫 Rejected job with low fit score: ${parsed.jobData.fitScore}% - continuing search`);
+                    // Continue searching automatically - Sam will find better matches
+                    return null; // This will trigger continued search
                 }
             } else {
+                // No job card found - Sam either sent empty response (good) or needs to search more
+                console.log('📭 No job card in response - Sam is being selective or needs to search more');
+                
                 // Check if Sam returned a TRIGGER_SEARCH
                 if (assistantMessage.includes('[TRIGGER_SEARCH:')) {
                     console.log('🔍 Response contains TRIGGER_SEARCH - Sam wants to search differently!');
                     const messagesWithResponse = [...currentMessages, { role: 'assistant', content: assistantMessage }];
                     await processSamResponse(assistantMessage, messagesWithResponse);
-                } else {
-                    console.log('📝 Adding Sam\'s message as normal text');
+                } else if (assistantMessage.trim().length > 0) {
+                    console.log('⚠️ WARNING: Sam sent text without job card (should not happen)');
                     setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
                 }
+                // If empty response, that's good - Sam is being selective
             }
             
             setIsSearchingJobs(false);

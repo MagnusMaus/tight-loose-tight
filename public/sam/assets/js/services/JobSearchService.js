@@ -103,21 +103,27 @@ DEINE AUFGABE:
 3. Erstelle EINE JOB_CARD für diesen Job
 
 KRITISCH WICHTIG: 
-✅ Erstelle NUR eine JOB_CARD - KEINEN zusätzlichen Chat-Text!
+✅ Erstelle NUR eine JOB_CARD wenn der Fit-Score MINDESTENS 70% beträgt!
+✅ Falls ALLE Jobs unter 70% Fit-Score liegen: ERSTELLE KEINEN OUTPUT!
+✅ Keine Jobs unter 70% Fit-Score empfehlen - NIEMALS!
 ✅ Alle deine Analyse gehört IN die JOB_CARD (description, pros, cons)
 ❌ KEINEN TRIGGER_SEARCH verwenden!
 ❌ KEINEN Text vor oder nach der JOB_CARD!
-❌ Dieser Prompt bedeutet NICHT "suche weitere Jobs"
+❌ KEINE Erklärungen warum Jobs nicht passen!
 
-Format:
+QUALITÄTS-STANDARD:
+- Fit-Score 80%+: Perfekter Match für Persönlichkeitsprofil
+- Fit-Score 70-79%: Guter Match mit kleinen Kompromissen
+- Fit-Score unter 70%: NICHT empfehlen - kein Output!
+
+Format NUR bei Fit-Score 70%+:
 [JOB_CARD:{
-  "description": "Hier deine ausführliche persönliche Analyse warum dieser Job perfekt passt - 3-4 Sätze mit psychografischem Fit",
+  "description": "Ausführliche Analyse warum dieser Job perfekt zum Persönlichkeitsprofil passt",
+  "fitScore": 75,
   "pros": ["Spezifische Gründe basierend auf Persönlichkeitsprofil"],
   "cons": ["Was beachtenswert ist"],
   ...
-}]
-
-Begründe IN der JOB_CARD warum dieser Job zum Persönlichkeitsprofil passt.`;
+}]`;
 
         const updatedMessages = [...currentMessages, {
             role: 'user',

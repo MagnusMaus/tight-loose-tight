@@ -102,19 +102,22 @@ DEINE AUFGABE:
 2. Wähle den BESTEN Job basierend auf dem Persönlichkeitsprofil
 3. Erstelle EINE JOB_CARD für diesen Job
 
-KRITISCH WICHTIG: 
-✅ Erstelle NUR eine JOB_CARD wenn der Fit-Score MINDESTENS 70% beträgt!
-✅ Falls ALLE Jobs unter 70% Fit-Score liegen: ERSTELLE KEINEN OUTPUT!
-✅ Keine Jobs unter 70% Fit-Score empfehlen - NIEMALS!
-✅ Alle deine Analyse gehört IN die JOB_CARD (description, pros, cons)
+ABSOLUT KRITISCH - NULL TOLERANZ:
+❌ NIEMALS Text ausgeben wenn Jobs unter 70% Fit-Score liegen!
+❌ KEINE Erklärungen, KEINE Nachrichten, KEIN Output!
+❌ NICHT "[Keine Ausgabe - ...]" oder ähnliche Kommentare!
 ❌ KEINEN TRIGGER_SEARCH verwenden!
-❌ KEINEN Text vor oder nach der JOB_CARD!
-❌ KEINE Erklärungen warum Jobs nicht passen!
+
+VERHALTEN bei Jobs unter 70%:
+- Analysiere intern die Jobs
+- Falls ALLE unter 70% Fit-Score: GIB NICHTS AUS - KOMPLETT LEER!
+- Keine Begründungen, keine Kommentare, keine Nachrichten
+- Das System sucht automatisch weiter mit anderen Begriffen
 
 QUALITÄTS-STANDARD:
-- Fit-Score 80%+: Perfekter Match für Persönlichkeitsprofil
-- Fit-Score 70-79%: Guter Match mit kleinen Kompromissen
-- Fit-Score unter 70%: NICHT empfehlen - kein Output!
+- Fit-Score 80%+: Perfekter Match → JOB_CARD erstellen
+- Fit-Score 70-79%: Guter Match → JOB_CARD erstellen  
+- Fit-Score unter 70%: SCHWEIGEN - absolut kein Output!
 
 Format NUR bei Fit-Score 70%+:
 [JOB_CARD:{
@@ -123,7 +126,9 @@ Format NUR bei Fit-Score 70%+:
   "pros": ["Spezifische Gründe basierend auf Persönlichkeitsprofil"],
   "cons": ["Was beachtenswert ist"],
   ...
-}]`;
+}]
+
+WICHTIG: Bei schlechten Jobs = KOMPLETT SCHWEIGEN!`;
 
         const updatedMessages = [...currentMessages, {
             role: 'user',

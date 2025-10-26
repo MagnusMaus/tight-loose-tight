@@ -348,12 +348,59 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
                 }
             }
             
-            // Send jobs to Sam for analysis
+            // Send jobs to Sam for analysis  
             const assistantMessage = await JobSearchService.analyzeJobsWithSam(
                 foundJobs, 
                 currentMessages, 
                 getSystemPrompt()
             );
+            
+            // If no quality job found, auto-search with psychographic alternatives
+            if (!assistantMessage || !assistantMessage.includes('[JOB_CARD:')) {
+                console.log('🧠 No quality jobs - trying psychographic alternatives...');
+                
+                const psychographicAlternatives = [
+                    'Change Manager', 'Transformation Manager', 'Organisationsentwickler',
+                    'Business Development Manager', 'Strategie Manager', 'Prozess Manager',
+                    'Team Lead', 'Abteilungsleiter', 'Projektleiter', 'Product Manager',
+                    'Beratung', 'Consulting', 'Management Consultant', 'Berater'
+                ];
+                
+                for (const altQuery of psychographicAlternatives) {
+                    console.log(`🔄 Trying psychographic alternative: ${altQuery}`);
+                    const altJobs = await JobSearchService.searchJobsIntelligent(
+                        altQuery, 
+                        location, 
+                        currentMessages, 
+                        shownJobUrls
+                    );
+                    
+                    if (altJobs) {
+                        const altMessage = await JobSearchService.analyzeJobsWithSam(
+                            altJobs, 
+                            currentMessages, 
+                            getSystemPrompt()
+                        );
+                        
+                        if (altMessage && altMessage.includes('[JOB_CARD:')) {
+                            console.log(`✅ Found quality job with alternative: ${altQuery}`);
+                            const parsed = Helpers.parseJobCard(altMessage);
+                            if (parsed && parsed.jobData.fitScore >= 70) {
+                                const newCard = { ...parsed.jobData, id: Helpers.generateId() };
+                                setJobCards(prev => [...prev, newCard]);
+                                const jobKey = parsed.jobData.applyUrl || parsed.jobData.url || `${parsed.jobData.title}_${parsed.jobData.company}`;
+                                setShownJobUrls(prev => new Set([...prev, jobKey]));
+                                setIsSearchingJobs(false);
+                                return altJobs.jobs;
+                            }
+                        }
+                    }
+                }
+                
+                console.log('⚠️ Exhausted all psychographic alternatives');
+                setIsSearchingJobs(false);
+                return null;
+            }
             
             const parsed = Helpers.parseJobCard(assistantMessage);
             
@@ -376,19 +423,26 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
                     return null; // This will trigger continued search
                 }
             } else {
-                // No job card found - Sam either sent empty response (good) or needs to search more
-                console.log('📭 No job card in response - Sam is being selective or needs to search more');
-                
-                // Check if Sam returned a TRIGGER_SEARCH
-                if (assistantMessage.includes('[TRIGGER_SEARCH:')) {
-                    console.log('🔍 Response contains TRIGGER_SEARCH - Sam wants to search differently!');
-                    const messagesWithResponse = [...currentMessages, { role: 'assistant', content: assistantMessage }];
-                    await processSamResponse(assistantMessage, messagesWithResponse);
-                } else if (assistantMessage.trim().length > 0) {
-                    console.log('⚠️ WARNING: Sam sent text without job card (should not happen)');
-                    setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
+                // No job card found - Sam either sent empty response (good) or text (bad)
+                if (assistantMessage.trim().length > 0) {
+                    console.log('⚠️ CRITICAL: Sam sent text instead of staying silent!');
+                    console.log('⚠️ Forbidden text:', assistantMessage);
+                    // DO NOT show this to user - Sam must learn to stay silent
+                    
+                    // Check if Sam returned a TRIGGER_SEARCH anyway
+                    if (assistantMessage.includes('[TRIGGER_SEARCH:')) {
+                        console.log('🔍 Response contains TRIGGER_SEARCH - Sam wants to search differently!');
+                        const messagesWithResponse = [...currentMessages, { role: 'assistant', content: assistantMessage }];
+                        await processSamResponse(assistantMessage, messagesWithResponse);
+                        return foundJobs.jobs;
+                    }
+                } else {
+                    console.log('✅ Sam correctly stayed silent - no quality jobs found');
                 }
-                // If empty response, that's good - Sam is being selective
+                
+                // Auto-continue search with psychographic alternatives
+                console.log('🔄 No quality jobs found - auto-searching with psychographic alternatives...');
+                return null; // This triggers intelligent continuation
             }
             
             setIsSearchingJobs(false);

@@ -121,7 +121,7 @@ Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
         }];
 
         try {
-            const samData = await ApiService.chatWithSam(updatedMessages, systemPrompt);
+            const samData = await ApiService.chatWithSam(updatedMessages, systemPrompt, { isJobAnalysis: true });
             const assistantMessage = samData.content[0].text;
             
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

@@ -1,9 +1,15 @@
 // API Service for handling all backend communications
 const ApiService = {
     // Chat with Sam (Claude API)
-    chatWithSam: async (messages, systemPrompt) => {
+    chatWithSam: async (messages, systemPrompt, options = {}) => {
         try {
             console.log('🌐 Calling Sam API for chat...');
+            
+            // Use extended timeout for CV analysis
+            const timeout = options.isJobAnalysis ? AppConstants.TIMEOUTS.CV_ANALYSIS_TIMEOUT : AppConstants.TIMEOUTS.API_TIMEOUT;
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
             
             const response = await fetch(AppConstants.API_ENDPOINTS.CHAT, {
                 method: 'POST',
@@ -11,8 +17,11 @@ const ApiService = {
                 body: JSON.stringify({
                     messages: messages,
                     system: systemPrompt
-                })
+                }),
+                signal: controller.signal
             });
+            
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 const errorData = await response.json();

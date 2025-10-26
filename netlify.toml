@@ -2,6 +2,10 @@
   publish = "dist"
   functions = "netlify/functions"
 
+[functions]
+  # Increase timeout for CV analysis and job matching (max 26s on Pro plan)
+  timeout = 25
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

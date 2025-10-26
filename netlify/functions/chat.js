@@ -2,6 +2,9 @@
 // WITH INPUT VALIDATION
 
 exports.handler = async (event, context) => {
+  // Set timeout to 25 seconds for complex CV analysis and job matching
+  context.callbackWaitsForEmptyEventLoop = false;
+  
   // Nur POST-Anfragen erlauben
   if (event.httpMethod !== 'POST') {
     return {

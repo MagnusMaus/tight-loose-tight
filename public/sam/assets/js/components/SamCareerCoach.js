@@ -386,7 +386,7 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
             setIsUploadingCV(false);
             setIsLoading(true);
 
-            const samData = await ApiService.chatWithSam(updatedMessages, getSystemPrompt());
+            const samData = await ApiService.chatWithSam(updatedMessages, getSystemPrompt(), { isJobAnalysis: true });
             const assistantMessage = samData.content[0].text;
 
             // Use central processing function!

@@ -230,8 +230,19 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
                 
                 console.log('🚀 Starting job search with query:', searchParams.query, 'location:', searchParams.location);
                 
+                // Validate search parameters
+                if (!searchParams.query || typeof searchParams.query !== 'string' || searchParams.query.trim().length === 0) {
+                    console.error('❌ Invalid or empty query:', searchParams.query);
+                    setMessages(prev => [...prev, {
+                        role: 'assistant',
+                        content: 'Entschuldige, ich konnte keine passenden Suchbegriffe aus deinem CV ableiten. Könntest du mir sagen, nach welcher Art von Position du suchst? 🤔'
+                    }]);
+                    setIsLoading(false);
+                    return true;
+                }
+                
                 // Start job search
-                await searchJobs(searchParams.query, searchParams.location, updatedMessages);
+                await searchJobs(searchParams.query, searchParams.location || 'Hannover', updatedMessages);
                 return true; // Processed!
                 
             } catch (e) {
@@ -342,9 +353,17 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
 
         } catch (error) {
             console.error('❌ CRITICAL ERROR in searchJobs:', error);
+            console.error('Error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+                query: query,
+                location: location
+            });
+            
             setMessages(prev => [...prev, {
                 role: 'assistant',
-                content: 'Technisches Problem bei der Suche. Lass uns es nochmal versuchen! 🔧'
+                content: `Technisches Problem bei der Suche nach "${query}" in ${location}. Das könnte an einer zu spezifischen Suchanfrage liegen. Lass uns es mit anderen Begriffen versuchen! 🔧`
             }]);
             setIsSearchingJobs(false);
             return null;
@@ -377,9 +396,18 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
             
         } catch (error) {
             console.error('❌ CV upload error:', error);
+            console.error('Error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+                fileName: file?.name,
+                fileSize: file?.size,
+                fileType: file?.type
+            });
+            
             setMessages(prev => [...prev, {
                 role: 'assistant',
-                content: 'Fehler beim Verarbeiten. Bitte nochmal versuchen. 🔧'
+                content: `Fehler beim Verarbeiten deines CVs (${file?.name}). Das könnte an der Dateigröße oder dem Format liegen. Bitte versuche es mit einer PDF- oder Word-Datei unter 10MB nochmal. 🔧`
             }]);
             setIsUploadingCV(false);
             setIsLoading(false);

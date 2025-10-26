@@ -1,0 +1,1708 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sam - Karriere-Coach</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f9fafb;
+        }
+        
+        #root {
+            width: 100%;
+        }
+
+        .bounce-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #3b82f6;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef, useEffect } = React;
+        const { createRoot } = ReactDOM;
+
+        // Lucide icons
+        const SendIcon = () => (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+        );
+
+        const FileUpIcon = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="12" y1="18" x2="12" y2="12"></line>
+                <line x1="9" y1="15" x2="15" y2="15"></line>
+            </svg>
+        );
+
+        const CheckCircleIcon = () => (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+        );
+
+        const BookmarkPlusIcon = () => (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                <line x1="12" y1="7" x2="12" y2="13"></line>
+                <line x1="9" y1="10" x2="15" y2="10"></line>
+            </svg>
+        );
+
+        const Trash2Icon = () => (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+        );
+
+        const SearchIcon = () => (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+            </svg>
+        );
+
+        const UploadIcon = () => (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+        );
+
+        const BrainIcon = () => (
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"></path>
+                <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"></path>
+            </svg>
+        );
+
+        const DiamondIcon = () => (
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41l-7.59-7.59a2.41 2.41 0 0 0-3.41 0z"></path>
+            </svg>
+        );
+
+        const SparklesIcon = () => (
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275z"></path>
+                <path d="M5 3v4"></path>
+                <path d="M19 17v4"></path>
+                <path d="M3 5h4"></path>
+                <path d="M17 19h4"></path>
+            </svg>
+        );
+
+        const SamCareerCoach = () => {
+            const [messages, setMessages] = useState([]);
+            const [input, setInput] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+            const [jobCards, setJobCards] = useState([]);
+            const [savedJobs, setSavedJobs] = useState([]);
+            const [showSavedJobs, setShowSavedJobs] = useState(false);
+            const [isSearchingJobs, setIsSearchingJobs] = useState(false);
+            const [isUploadingCV, setIsUploadingCV] = useState(false);
+            const [shownJobUrls, setShownJobUrls] = useState(new Set()); // ✨ FIX 1: Trackt bereits gezeigte Jobs
+            const messagesEndRef = useRef(null);
+            const fileInputRef = useRef(null);
+            const chatSectionRef = useRef(null);
+
+            const scrollToBottom = () => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            };
+
+            useEffect(() => {
+                scrollToBottom();
+            }, [messages, jobCards]);
+
+            useEffect(() => {
+                const greeting = getGreeting();
+                setMessages([{
+                    role: 'assistant',
+                    content: greeting
+                }]);
+            }, []);
+
+            const getGreeting = () => {
+                const hour = new Date().getHours();
+                let timeOfDay;
+                if (hour < 12) timeOfDay = 'Morgen';
+                else if (hour < 18) timeOfDay = 'Mittag';
+                else timeOfDay = 'Abend';
+
+                return `Guten ${timeOfDay}, schön, dass du da bist. Mein Name ist Sam. Ich bin hier, um dich dabei zu unterstützen, deinen nächsten Karriereschritt zu finden.
+
+Damit dieser Schritt genau zu dir passt, stelle ich dir gleich ein paar Fragen. Je offener und präziser du sie beantwortest, desto besser wird das Ergebnis. Keine Sorge! Deine Daten sind bei mir sicher. Sie sind von niemandem sonst einsehbar.
+
+In welcher beruflichen Situation befindest du dich gerade?`;
+            };
+
+            const getSystemPrompt = () => {
+                return `Du bist Sam, ein fortschrittlicher KI-Karriere-Coach und Recruiting-Experte.
+
+WICHTIG: Du hast Zugriff auf die Arbeitsagentur Jobbörse - die GRÖßTE deutsche Stellendatenbank mit INTELLIGENTER GESTAFFELTER SUCHE!
+
+JOB-SUCHE BEST PRACTICES:
+- Verwende SPEZIFISCHE Suchbegriffe basierend auf dem Profil: "Operations Director", "Head of Marketing", etc.
+- Location: IMMER eine konkrete deutsche Stadt angeben ("Berlin", "München", "Hamburg", "Hannover")
+- NIEMALS location leer lassen - die API verlangt konkrete Städte!
+- Das System erweitert automatisch: spezifisch → breit, lokal → deutschlandweit
+
+PROAKTIVES VERHALTEN:
+- Starte mit psychografisch präzisen Queries - das System macht sie automatisch breiter wenn nötig
+- Sage dem Nutzer NICHT, dass du suchst oder was du suchst
+- Das System probiert automatisch Query-Varianten und verschiedene Locations
+- Der Nutzer sieht nur erfolgreiche Ergebnisse
+
+CV-UPLOAD: Zeige NIEMALS rohe CV-Daten, nur persönliche Antworten.
+
+====================================
+KRITISCHE REGEL: TRIGGER_SEARCH vs JOB_CARD
+====================================
+
+Es gibt NUR ZWEI Situationen wo du diese Tags verwendest:
+
+1️⃣ TRIGGER_SEARCH - VERWENDE NUR WENN:
+   ✅ Du bereit bist eine NEUE Job-Suche zu starten
+   ✅ User sagt "Speichern & weiter" oder "Zeige mir weitere Stellen"
+   ✅ User lehnt einen Job ab
+   ✅ Du NOCH KEINE Jobs zur Analyse bekommen hast
+
+   ❌ NIEMALS verwenden wenn du bereits Jobs zur Analyse bekommen hast!
+
+2️⃣ JOB_CARD - VERWENDE NUR WENN:
+   ✅ Du hast gerade Jobs ZUR ANALYSE bekommen (System sendet dir 5 Jobs)
+   ✅ Du sollst den BESTEN Job empfehlen
+   ✅ Du siehst einen Job-Titel, Firma, Beschreibung in der Nachricht
+   
+   ❌ NIEMALS zusammen mit TRIGGER_SEARCH verwenden!
+
+====================================
+
+WENN DU JOBS ZUR ANALYSE BEKOMMST:
+- Das System sendet dir 5 Jobs mit: Titel, Firma, Ort, Beschreibung
+- Du MUSST dann SOFORT eine JOB_CARD erstellen
+- Bewerte ALLE 5 Jobs intern (50% psychografisch!)
+- Wähle den BESTEN aus
+- Erstelle NUR eine JOB_CARD - KEINEN TRIGGER_SEARCH!
+
+Format:
+
+[Deine persönliche Analyse warum dieser Job passt]
+
+[JOB_CARD:{
+  "title": "Job Titel",
+  "company": "Firma", 
+  "location": "Ort",
+  "salary": "Gehalt",
+  "description": "2-3 Sätze",
+  "fitScore": 85,
+  "pros": ["Passt weil..."],
+  "cons": ["Beachte..."],
+  "applyUrl": "https://..."
+}]
+
+WENN USER "SPEICHERN & WEITER" SAGT:
+- User will mehr Optionen sehen
+- Erstelle NEUEN TRIGGER_SEARCH (KEINE JOB_CARD!)
+- Query kann ähnlich sein oder leicht variieren
+
+Format:
+
+Super! Ich schaue nach weiteren Positionen. 🔍
+
+[TRIGGER_SEARCH:{
+  "query": "...",
+  "location": "..."
+}]
+
+====================================
+
+GESPRÄCHSFÜHRUNG:
+- Stelle NUR EINE Frage pro Nachricht
+- Nutze Emojis angemessen
+- Frage gezielt nach für vollständiges Profil
+
+PROFILERSTELLUNG (50% des Fit-Scores!):
+1. Werte & Motivatoren
+2. Arbeitspsychologie  
+3. Umfeld-Präferenzen
+
+DREI HAUPTFRAGEN:
+1. Berufliche Situation?
+2. Berufliche Entwicklung (3-5 Jahre)?
+3. Fähigkeiten & Erfahrungen? (CV-Upload möglich)
+
+JOBEMPFEHLUNGEN:
+- IMMER nur EINEN Job pro Nachricht
+- Erkläre psychografischen Fit ausführlich
+- Warte auf Feedback
+- Du hörst NUR auf wenn User EXPLIZIT stoppt`;
+            };
+
+            const parseJobCard = (text) => {
+                console.log('🔍 parseJobCard() called');
+                console.log('   Input length:', text.length, 'chars');
+                
+                // 🔧 FIX: Finde [JOB_CARD: Start
+                const startMatch = text.match(/\[JOB_CARD:\s*\{/);
+                if (!startMatch) {
+                    console.log('   ❌ No [JOB_CARD:{...}] pattern found in text');
+                    console.log('   First 200 chars:', text.substring(0, 200));
+                    return null;
+                }
+                
+                const startIndex = startMatch.index + startMatch[0].length - 1; // Index von {
+                
+                // 🔧 FIX: Finde das passende schließende } durch Bracket-Counting
+                let braceCount = 0;
+                let endIndex = -1;
+                
+                for (let i = startIndex; i < text.length; i++) {
+                    if (text[i] === '{') braceCount++;
+                    else if (text[i] === '}') {
+                        braceCount--;
+                        if (braceCount === 0) {
+                            endIndex = i;
+                            break;
+                        }
+                    }
+                }
+                
+                if (endIndex === -1) {
+                    console.log('   ❌ No matching closing brace found');
+                    return null;
+                }
+                
+                // Check ob nach dem } ein ] kommt
+                const afterBrace = text.substring(endIndex + 1).trimStart();
+                if (!afterBrace.startsWith(']')) {
+                    console.log('   ❌ No closing ] found after }');
+                    return null;
+                }
+                
+                const jsonString = text.substring(startIndex, endIndex + 1).trim();
+                console.log('   ✅ [JOB_CARD:{...}] pattern found!');
+                console.log('   Raw JSON:', jsonString.substring(0, 100) + '...');
+
+                try {
+                    const jobData = JSON.parse(jsonString);
+                    console.log('   ✅ JSON parsed successfully!');
+                    console.log('   Job title:', jobData.title);
+                    console.log('   Company:', jobData.company);
+                    console.log('   Fit score:', jobData.fitScore);
+                    
+                    // Entferne die komplette JOB_CARD aus dem Text
+                    const cardStart = startMatch.index;
+                    const cardEnd = endIndex + 1 + afterBrace.indexOf(']') + 1;
+                    const cleanText = (text.substring(0, cardStart) + text.substring(cardEnd)).trim();
+                    console.log('   Clean text length:', cleanText.length, 'chars');
+                    
+                    return { jobData, cleanText };
+                } catch (e) {
+                    console.error('   ❌ Error parsing job card JSON:', e);
+                    console.error('   Raw JSON string:', jsonString);
+                    return null;
+                }
+            };
+
+            // ZENTRALE FUNKTION: Verarbeitet Sam's Response (mit oder ohne TRIGGER_SEARCH)
+            const processSamResponse = async (assistantMessage, updatedMessages) => {
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('📥 DEBUG: processSamResponse called');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('📝 FULL SAM RESPONSE:');
+                console.log(assistantMessage);
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                
+                // SCHRITT 1: Check für TRIGGER_SEARCH (Priorität!)
+                const searchTrigger = assistantMessage.match(/\[TRIGGER_SEARCH:\s*(\{[\s\S]*?\})\s*\]/);
+                
+                console.log('🔍 DEBUG: Checking for TRIGGER_SEARCH...');
+                console.log('   Found:', searchTrigger ? 'YES ✅' : 'NO ❌');
+                
+                if (searchTrigger) {
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('🔍 DEBUG: TRIGGER_SEARCH detected!');
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('📋 Raw JSON string:', searchTrigger[1]);
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    
+                    try {
+                        const searchParams = JSON.parse(searchTrigger[1]);
+                        console.log('✅ Parsed successfully:', searchParams);
+                        
+                        // Entferne TRIGGER_SEARCH aus Text
+                        const cleanMessage = assistantMessage.replace(/\[TRIGGER_SEARCH:\s*\{[\s\S]*?\}\s*\]/g, '').trim();
+                        
+                        console.log('📝 Text BEFORE TRIGGER_SEARCH:');
+                        console.log(cleanMessage || '(empty)');
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        
+                        // Zeige Sam's Nachricht (ohne TRIGGER_SEARCH)
+                        if (cleanMessage) {
+                            console.log('💬 Adding clean message to chat');
+                            setMessages(prev => [...prev, { role: 'assistant', content: cleanMessage }]);
+                        }
+                        
+                        setIsLoading(false);
+                        
+                        console.log('🚀 Starting job search with query:', searchParams.query, 'location:', searchParams.location);
+                        
+                        // Starte Job-Suche
+                        await searchJobs(searchParams.query, searchParams.location, updatedMessages, 0, new Set());
+                        return true; // Verarbeitet!
+                        
+                    } catch (e) {
+                        console.error('❌ Error parsing TRIGGER_SEARCH JSON:', e);
+                        console.error('Raw JSON:', searchTrigger[1]);
+                        
+                        // WICHTIG: Auch bei Parse-Error den TRIGGER_SEARCH entfernen und cleaned message anzeigen!
+                        const cleanMessage = assistantMessage.replace(/\[TRIGGER_SEARCH:\s*\{[\s\S]*?\}\s*\]/g, '').trim();
+                        if (cleanMessage) {
+                            setMessages(prev => [...prev, { role: 'assistant', content: cleanMessage }]);
+                        }
+                        
+                        // Zeige Fehlermeldung
+                        setMessages(prev => [...prev, {
+                            role: 'assistant',
+                            content: 'Entschuldige, da gab es ein technisches Problem. Lass uns manuell weitersuchen - welche Art von Position interessiert dich am meisten? 🤔'
+                        }]);
+                        
+                        setIsLoading(false);
+                        return true; // Verhindere dass der rohe TRIGGER_SEARCH angezeigt wird!
+                    }
+                }
+                
+                // SCHRITT 2: Check für JOB_CARD
+                console.log('🔍 DEBUG: Checking for JOB_CARD...');
+                const parsed = parseJobCard(assistantMessage);
+                console.log('   Found:', parsed ? 'YES ✅' : 'NO ❌');
+                
+                if (parsed) {
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('📋 DEBUG: JOB_CARD detected and parsed!');
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('💼 Job:', parsed.jobData.title);
+                    console.log('🏢 Company:', parsed.jobData.company);
+                    console.log('📍 Location:', parsed.jobData.location);
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    
+                    setJobCards(prev => [...prev, { ...parsed.jobData, id: Date.now() }]);
+                    if (parsed.cleanText) {
+                        console.log('💬 Adding clean text before card:', parsed.cleanText.substring(0, 100) + '...');
+                        setMessages(prev => [...prev, { role: 'assistant', content: parsed.cleanText }]);
+                    }
+                    return true;
+                }
+                
+                // SCHRITT 3: Normaler Text
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('💬 DEBUG: Normal message (no TRIGGER_SEARCH or JOB_CARD)');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('📝 Message content:', assistantMessage.substring(0, 200) + '...');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                
+                setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
+                return true;
+            };
+
+            // ========================================
+            // NEUE INTELLIGENTE GESTAFFELTE JOB-SUCHE
+            // ========================================
+            
+            // Generiert Query-Varianten: spezifisch → breit
+            const generateQueryVariants = (query) => {
+                const variants = [query];
+                const words = query.split(' ').filter(w => w.length > 2);
+                
+                // Extrahiere Kernbegriffe und erstelle breitere Varianten
+                if (words.length >= 3) {
+                    // Z.B. "Operations Director Manager" → "Operations Director" → "Operations Manager" → "Director" → "Manager"
+                    variants.push(words.slice(0, 2).join(' '));
+                    variants.push(words[0] + ' ' + words[words.length - 1]);
+                    variants.push(words[0]);
+                    variants.push(words[words.length - 1]);
+                } else if (words.length === 2) {
+                    // Z.B. "Operations Director" → "Operations Manager" → "Operations" → "Director"
+                    variants.push(words[0] + ' Manager');
+                    variants.push(words[0]);
+                    variants.push(words[1]);
+                } else if (words.length === 1) {
+                    // Single word - add "Manager" variant
+                    variants.push(words[0] + ' Manager');
+                }
+                
+                // Remove duplicates und behalte Reihenfolge
+                const unique = [...new Set(variants)];
+                console.log('📊 Query variants:', unique);
+                return unique;
+            };
+            
+            // Generiert Location-Tiers: lokal → regional → überregional
+            const generateLocationTiers = (userRegion = 'Hannover') => {
+                const tiers = [
+                    // Runde 1: Nutzer-Region lokal
+                    { location: userRegion, radius: 50, label: 'Lokal' },
+                    { location: userRegion, radius: 100, label: 'Regional' },
+                    
+                    // Runde 2: Große Städte für deutschlandweite Abdeckung
+                    { location: 'Berlin', radius: 100, label: 'Berlin Region' },
+                    { location: 'München', radius: 100, label: 'München Region' },
+                    { location: 'Hamburg', radius: 100, label: 'Hamburg Region' },
+                    
+                    // Runde 3: Erweiterte Suche
+                    { location: 'Frankfurt', radius: 150, label: 'Frankfurt erweitert' },
+                    { location: 'Köln', radius: 150, label: 'Köln erweitert' },
+                    
+                    // Runde 4: Garantierter Fallback
+                    { location: 'Berlin', radius: 200, label: 'Berlin deutschlandweit' }
+                ];
+                
+                console.log('📍 Location tiers:', tiers);
+                return tiers;
+            };
+            
+            // Einzelner API-Call zur Arbeitsagentur
+            const searchJobsAPI = async (query, location, radius) => {
+                const response = await fetch('/.netlify/functions/search-jobs-arbeitsagentur', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: query,
+                        location: location,
+                        radius: radius,
+                        size: 25
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+                
+                return await response.json();
+            };
+            
+            // Hauptfunktion: Intelligente gestaffelte Suche
+            const searchJobs = async (query, location, currentMessages, retryCount = 0, triedSet = new Set()) => {
+                console.log('🎯 Starting intelligent tiered search for:', query);
+                
+                setIsSearchingJobs(true);
+                
+                try {
+                    // Generiere Query-Varianten und Location-Tiers
+                    const queryVariants = generateQueryVariants(query);
+                    const userRegion = location || 'Hannover'; // Default zu Hannover wenn keine Location
+                    const locationTiers = generateLocationTiers(userRegion);
+                    
+                    let attemptNumber = 0;
+                    let foundJobs = null;
+                    
+                    // Durchlaufe alle Kombinationen: Query-Varianten × Location-Tiers
+                    for (const queryVariant of queryVariants) {
+                        if (foundJobs) break; // Stop wenn Jobs gefunden
+                        
+                        for (const locationTier of locationTiers) {
+                            attemptNumber++;
+                            
+                            console.log(`🔍 Attempt ${attemptNumber}: "${queryVariant}" in ${locationTier.location} (${locationTier.radius}km) [${locationTier.label}]`);
+                            
+                            try {
+                                const data = await searchJobsAPI(queryVariant, locationTier.location, locationTier.radius);
+                                
+                                console.log(`📊 Result: ${data.total || 0} jobs found`);
+                                
+                                if (data.jobs && data.jobs.length > 0) {
+                                    // ✨ FIX 1: Filtere bereits gezeigte Jobs SOFORT
+                                    console.log(`   📋 Total jobs from API: ${data.jobs.length}`);
+                                    console.log(`   🔍 Already shown jobs: ${shownJobUrls.size}`);
+                                    
+                                    const newJobs = data.jobs.filter(job => {
+                                        const jobKey = job.url || `${job.title}_${job.company}`;
+                                        const isNew = !shownJobUrls.has(jobKey);
+                                        if (!isNew) {
+                                            console.log(`   ⏭️  Skipping already shown: "${job.title}" at ${job.company}`);
+                                        }
+                                        return isNew;
+                                    });
+                                    
+                                    console.log(`   ✨ New jobs after filtering: ${newJobs.length}`);
+                                    
+                                    // Nur wenn NEUE Jobs nach Filterung -> als Erfolg werten
+                                    if (newJobs.length > 0) {
+                                        console.log(`🎉 SUCCESS! Found ${newJobs.length} NEW jobs!`);
+                                        foundJobs = {
+                                            jobs: newJobs,
+                                            query: queryVariant,
+                                            location: locationTier.location
+                                        };
+                                        break; // Erfolg - stop die innere Schleife
+                                    } else {
+                                        console.log('⚠️  All jobs were already shown - continuing search...');
+                                        // Kein break - weitermachen mit nächster Kombination
+                                    }
+                                } else {
+                                    console.log('📭 No jobs, trying next combination...');
+                                }
+                                
+                            } catch (error) {
+                                console.error(`❌ Error in attempt ${attemptNumber}:`, error);
+                                // Continue mit nächster Kombination
+                            }
+                        }
+                    }
+                    
+                    // Check ob Jobs gefunden wurden
+                    if (!foundJobs) {
+                        console.error('❌ All combinations exhausted - no jobs found');
+                        setMessages(prev => [...prev, {
+                            role: 'assistant',
+                            content: `Ich habe sehr gründlich gesucht, aber leider keine passenden Stellen gefunden. Lass uns gemeinsam überlegen: Könnten wir das Suchprofil etwas anpassen? Vielleicht verwandte Rollen oder andere Branchen einbeziehen? 🤔`
+                        }]);
+                        setIsSearchingJobs(false);
+                        return null;
+                    }
+                    
+                    // Jobs gefunden! Sende an Sam zur Bewertung
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('📤 DEBUG: Sending jobs to Sam for ANALYSIS');
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log(`   Jobs found: ${foundJobs.jobs.length}`);
+                    console.log(`   Query: "${foundJobs.query}"`);
+                    console.log(`   Location: "${foundJobs.location}"`);
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    
+                    const jobsContext = `[SYSTEM: JOB-ANALYSE-MODUS]
+
+Hier sind ${foundJobs.jobs.length} Jobs von der Bundesagentur für "${foundJobs.query}" in "${foundJobs.location}":
+
+${foundJobs.jobs.slice(0, 5).map((job, i) => `
+Job ${i + 1}:
+- Titel: ${job.title}
+- Firma: ${job.company}
+- Ort: ${job.location}
+- Beschreibung: ${job.description}
+- Link: ${job.url}
+`).join('\n')}
+
+DEINE AUFGABE:
+1. Bewerte ALLE 5 Jobs intern (50% psychografisch, 30% Skills, 20% Umfeld)
+2. Wähle den BESTEN Job basierend auf dem Persönlichkeitsprofil
+3. Erstelle EINE JOB_CARD für diesen Job
+
+WICHTIG: 
+✅ Erstelle NUR eine JOB_CARD
+❌ KEINEN TRIGGER_SEARCH verwenden!
+❌ Dieser Prompt bedeutet NICHT "suche weitere Jobs"
+❌ Du musst NUR den besten der 5 gegebenen Jobs empfehlen
+
+Format:
+[Deine persönliche Analyse des Jobs - 2-3 Sätze]
+
+[JOB_CARD:{...}]
+
+Begründe ausführlich warum dieser Job zum Persönlichkeitsprofil passt.`;
+
+                    const updatedMessages = [...currentMessages, {
+                        role: 'user',
+                        content: jobsContext
+                    }];
+
+                    console.log('🌐 Calling Sam API for job analysis...');
+                    const samResponse = await fetch('/.netlify/functions/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            messages: updatedMessages,
+                            system: getSystemPrompt()
+                        })
+                    });
+                    console.log('✅ API Response received! Status:', samResponse.status);
+
+                    if (!samResponse.ok) {
+                        console.error('❌ API Response NOT OK:', samResponse.status, samResponse.statusText);
+                        throw new Error(`API returned ${samResponse.status}`);
+                    }
+
+                    const samData = await samResponse.json();
+                    console.log('📦 Response JSON parsed successfully');
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('🤖 SAM\'S ANALYSIS RESPONSE:');
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    
+                    const assistantMessage = samData.content[0].text;
+                    console.log(assistantMessage);
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('📏 Response length:', assistantMessage.length, 'characters');
+                    console.log('🔍 Checking if response contains JOB_CARD...');
+
+                    const parsed = parseJobCard(assistantMessage);
+                    console.log('🎯 parseJobCard result:', parsed ? 'FOUND JOB_CARD ✅' : 'NO JOB_CARD ❌');
+                    
+                    if (parsed) {
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        console.log('✨ Creating JOB_CARD!');
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        console.log('📋 Job Data:', JSON.stringify(parsed.jobData, null, 2));
+                        console.log('💬 Clean Text:', parsed.cleanText ? parsed.cleanText.substring(0, 100) + '...' : '(none)');
+                        
+                        const newCard = { ...parsed.jobData, id: Date.now() };
+                        console.log('🆔 Card ID:', newCard.id);
+                        console.log('🏢 Job Title:', newCard.title);
+                        console.log('🔗 Job URL:', newCard.applyUrl || newCard.url || '(no URL)');
+                        
+                        setJobCards(prev => {
+                            console.log('📊 Current jobCards count:', prev.length);
+                            console.log('➕ Adding new card, new count will be:', prev.length + 1);
+                            return [...prev, newCard];
+                        });
+                        
+                        // ✨ FIX 1: Tracke diese Job-URL als "gezeigt"
+                        const jobKey = parsed.jobData.applyUrl || parsed.jobData.url || `${parsed.jobData.title}_${parsed.jobData.company}`;
+                        setShownJobUrls(prev => new Set([...prev, jobKey]));
+                        console.log(`✅ Added to shown jobs: "${parsed.jobData.title}" (Total shown: ${shownJobUrls.size + 1})`);
+                        
+                        if (parsed.cleanText) {
+                            console.log('💬 Adding Sam\'s analysis message to chat');
+                            setMessages(prev => [...prev, { role: 'assistant', content: parsed.cleanText }]);
+                        }
+                        console.log('✅ JOB_CARD successfully added to UI!');
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    } else {
+                        // ✨ FIX 2: Check ob Sam einen TRIGGER_SEARCH zurückgegeben hat!
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        console.log('⚠️  NO JOB_CARD FOUND in response!');
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        
+                        // Check ob Response einen TRIGGER_SEARCH enthält
+                        if (assistantMessage.includes('[TRIGGER_SEARCH:')) {
+                            console.log('🔍 Response contains TRIGGER_SEARCH - Sam wants to search differently!');
+                            console.log('📝 Processing TRIGGER_SEARCH via processSamResponse...');
+                            
+                            // WICHTIG: Nutze processSamResponse um TRIGGER_SEARCH richtig zu verarbeiten!
+                            const messagesWithResponse = [...updatedMessages, { role: 'assistant', content: assistantMessage }];
+                            await processSamResponse(assistantMessage, messagesWithResponse);
+                            console.log('✅ TRIGGER_SEARCH processed successfully!');
+                        } else {
+                            console.log('📝 Adding Sam\'s message as normal text (no card, no TRIGGER_SEARCH)');
+                            console.log('Message preview:', assistantMessage.substring(0, 200) + '...');
+                            setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
+                            console.log('⚠️  This is unexpected - Sam should have created a JOB_CARD!');
+                        }
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    }
+                    
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('🏁 searchJobs() completed successfully!');
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    setIsSearchingJobs(false);
+                    return foundJobs.jobs;
+
+                } catch (error) {
+                    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.error('❌ CRITICAL ERROR in searchJobs!');
+                    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.error('Error type:', error.name);
+                    console.error('Error message:', error.message);
+                    console.error('Error stack:', error.stack);
+                    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    
+                    setMessages(prev => [...prev, {
+                        role: 'assistant',
+                        content: 'Technisches Problem bei der Suche. Lass uns es nochmal versuchen! 🔧'
+                    }]);
+                    setIsSearchingJobs(false);
+                    return null;
+                }
+            };
+
+            const handleFileUpload = async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+
+                setIsUploadingCV(true);
+                console.log('📄 CV upload started');
+                
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const base64Data = e.target.result.split(',')[1];
+                        
+                        const response = await fetch('/.netlify/functions/parse-cv', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                fileData: base64Data,
+                                fileName: file.name,
+                                fileType: file.type
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error('Upload fehlgeschlagen');
+                        }
+                        
+                        const data = await response.json();
+                        const fileMessage = `[SYSTEM: Der Nutzer hat seinen Lebenslauf hochgeladen. Analysiere und antworte persönlich. Zeige NICHT die rohen Daten.]\n\n${data.text}`;
+                        
+                        const updatedMessages = [...messages, { role: 'user', content: fileMessage }];
+                        setIsUploadingCV(false);
+                        setIsLoading(true);
+
+                        const samResponse = await fetch('/.netlify/functions/chat', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                messages: updatedMessages,
+                                system: getSystemPrompt()
+                            })
+                        });
+
+                        const samData = await samResponse.json();
+                        const assistantMessage = samData.content[0].text;
+
+                        // WICHTIG: Nutze zentrale Verarbeitungsfunktion!
+                        // updatedMessages muss die Assistant-Message enthalten für searchJobs!
+                        const messagesWithResponse = [...updatedMessages, { role: 'assistant', content: assistantMessage }];
+                        await processSamResponse(assistantMessage, messagesWithResponse);
+                        setIsLoading(false);
+                        
+                    } catch (error) {
+                        console.error('❌ CV upload error:', error);
+                        setMessages([...messages, {
+                            role: 'assistant',
+                            content: 'Fehler beim Verarbeiten. Bitte nochmal versuchen. 🔧'
+                        }]);
+                        setIsUploadingCV(false);
+                        setIsLoading(false);
+                    }
+                };
+                reader.readAsDataURL(file);
+            };
+
+            const handleSend = async () => {
+                if (!input.trim() || isLoading) return;
+
+                const userMessage = { role: 'user', content: input };
+                const updatedMessages = [...messages, userMessage];
+                setMessages(updatedMessages);
+                setInput('');
+                setIsLoading(true);
+
+                try {
+                    const response = await fetch('/.netlify/functions/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            messages: updatedMessages,
+                            system: getSystemPrompt()
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    const assistantMessage = data.content[0].text;
+
+                    // Nutze zentrale Verarbeitungsfunktion!
+                    // updatedMessages muss die Assistant-Message enthalten für searchJobs!
+                    const messagesWithResponse = [...updatedMessages, { role: 'assistant', content: assistantMessage }];
+                    await processSamResponse(assistantMessage, messagesWithResponse);
+
+                } catch (error) {
+                    console.error('❌ Error:', error);
+                    setMessages([...updatedMessages, { 
+                        role: 'assistant', 
+                        content: 'Technischer Fehler. Bitte nochmal versuchen.' 
+                    }]);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const handleJobAction = async (jobId, action) => {
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('🎬 DEBUG: handleJobAction called');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('   Action:', action);
+                console.log('   Job ID:', jobId);
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                
+                const job = jobCards.find(j => j.id === jobId);
+                if (!job) return;
+
+                let userResponse = '';
+                if (action === 'apply') {
+                    userResponse = `Ich möchte mich für "${job.title}" bewerben.`;
+                    if (job.applyUrl) window.open(job.applyUrl, '_blank');
+                } else if (action === 'save') {
+                    console.log('💾 DEBUG: User clicked SAVE button - expecting TRIGGER_SEARCH in response!');
+                    setSavedJobs(prev => {
+                        if (prev.find(j => j.id === jobId)) return prev;
+                        return [...prev, job];
+                    });
+                    userResponse = `"${job.title}" gespeichert. Zeige mir weitere Stellen.`;
+                } else if (action === 'reject') {
+                    userResponse = `"${job.title}" passt nicht.`;
+                }
+
+                console.log('📤 DEBUG: Sending to Sam:', userResponse);
+                
+                setJobCards(prev => prev.filter(j => j.id !== jobId));
+
+                const userMessage = { role: 'user', content: userResponse };
+                const updatedMessages = [...messages, userMessage];
+                // Zeige user message sofort
+                setMessages(updatedMessages);
+                setIsLoading(true);
+
+                try {
+                    const response = await fetch('/.netlify/functions/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            messages: updatedMessages,
+                            system: getSystemPrompt()
+                        })
+                    });
+
+                    const data = await response.json();
+                    const assistantMessage = data.content[0].text;
+                    
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('📨 DEBUG: Sam response after handleJobAction:');
+                    console.log('   Context: After user clicked "' + action + '"');
+                    console.log('   Expected: TRIGGER_SEARCH (if save/reject) or normal text (if apply)');
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    
+                    // Nutze zentrale Verarbeitungsfunktion!
+                    // WICHTIG: processSamResponse fügt die assistant message hinzu - wir tun das NICHT hier!
+                    const messagesWithResponse = [...updatedMessages, { role: 'assistant', content: assistantMessage }];
+                    await processSamResponse(assistantMessage, messagesWithResponse);
+
+                } catch (error) {
+                    console.error('❌ Error:', error);
+                    setMessages(prev => [...prev, {
+                        role: 'assistant',
+                        content: 'Fehler. Lass uns weitermachen! 🔧'
+                    }]);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            return (
+                <div style={{ backgroundColor: '#f9fafb' }}>
+                        {/* Header */}
+                        <header style={{
+                            padding: '20px 40px',
+                            backgroundColor: 'white',
+                            borderBottom: '1px solid #e5e7eb'
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <h1 style={{
+                                    fontSize: '28px',
+                                    fontWeight: '700',
+                                    color: '#111827'
+                                }}>TabiCoach</h1>
+                                <span style={{
+                                    fontSize: '12px',
+                                    color: '#9ca3af',
+                                    backgroundColor: '#f3f4f6',
+                                    padding: '4px 12px',
+                                    borderRadius: '12px'
+                                }}>v2.0 Professional</span>
+                            </div>
+                        </header>
+
+                        {/* Hero Section */}
+                        <section style={{
+                            padding: '80px 40px 40px',
+                            textAlign: 'center',
+                            backgroundColor: 'white'
+                        }}>
+                            <h2 style={{
+                                fontSize: '56px',
+                                fontWeight: '700',
+                                color: '#111827',
+                                marginBottom: '24px',
+                                lineHeight: '1.2'
+                            }}>
+                                Jobs, die zu <span style={{ color: '#3b82f6' }}>dir</span> passen.
+                            </h2>
+                            <p style={{
+                                fontSize: '20px',
+                                color: '#6b7280',
+                                maxWidth: '700px',
+                                margin: '0 auto'
+                            }}>
+                                Sam versteht deine Persönlichkeit und findet Rollen, die du wirklich lieben wirst.
+                            </p>
+                        </section>
+
+                        {/* Features Section */}
+                        <section style={{
+                            padding: '40px 40px 60px',
+                            backgroundColor: '#f9fafb'
+                        }}>
+                            <h3 style={{
+                                fontSize: '32px',
+                                fontWeight: '700',
+                                textAlign: 'center',
+                                color: '#6b7280',
+                                marginBottom: '60px'
+                            }}>
+                                TabiCoach ist viel mehr als eine Jobbörse
+                            </h3>
+
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                                gap: '32px',
+                                maxWidth: '1200px',
+                                margin: '0 auto'
+                            }}>
+                                {/* Feature 1 */}
+                                <div style={{
+                                    backgroundColor: 'white',
+                                    padding: '32px',
+                                    borderRadius: '16px',
+                                    textAlign: 'center',
+                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+                                }}>
+                                    <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+                                        <BrainIcon />
+                                    </div>
+                                    <h4 style={{
+                                        fontSize: '20px',
+                                        fontWeight: '700',
+                                        color: '#111827',
+                                        marginBottom: '12px'
+                                    }}>
+                                        Sam versteht dich wirklich
+                                    </h4>
+                                    <p style={{
+                                        fontSize: '15px',
+                                        color: '#6b7280',
+                                        lineHeight: '1.6'
+                                    }}>
+                                        Ein kurzes Gespräch – und Sam kennt deine Werte, Motivationen und Arbeitsweise. Nicht nur deinen Lebenslauf.
+                                    </p>
+                                </div>
+
+                                {/* Feature 2 */}
+                                <div style={{
+                                    backgroundColor: 'white',
+                                    padding: '32px',
+                                    borderRadius: '16px',
+                                    textAlign: 'center',
+                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+                                }}>
+                                    <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+                                        <DiamondIcon />
+                                    </div>
+                                    <h4 style={{
+                                        fontSize: '20px',
+                                        fontWeight: '700',
+                                        color: '#111827',
+                                        marginBottom: '12px'
+                                    }}>
+                                        Finde auch versteckte Perlen
+                                    </h4>
+                                    <p style={{
+                                        fontSize: '15px',
+                                        color: '#6b7280',
+                                        lineHeight: '1.6'
+                                    }}>
+                                        Sam durchsucht tausende Jobs für dich – auch die mit unerwarteten Titeln. Kein perfekter Match bleibt dir verborgen.
+                                    </p>
+                                </div>
+
+                                {/* Feature 3 */}
+                                <div style={{
+                                    backgroundColor: 'white',
+                                    padding: '32px',
+                                    borderRadius: '16px',
+                                    textAlign: 'center',
+                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+                                }}>
+                                    <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+                                        <SparklesIcon />
+                                    </div>
+                                    <h4 style={{
+                                        fontSize: '20px',
+                                        fontWeight: '700',
+                                        color: '#111827',
+                                        marginBottom: '12px'
+                                    }}>
+                                        Nur relevante Jobs, kein Rauschen
+                                    </h4>
+                                    <p style={{
+                                        fontSize: '15px',
+                                        color: '#6b7280',
+                                        lineHeight: '1.6'
+                                    }}>
+                                        Sam filtert für dich und zeigt nur Matches, die wirklich passen. Schluss mit endlosen Listen durchscrollen.
+                                    </p>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Chat Section */}
+                        <section ref={chatSectionRef} style={{
+                            backgroundColor: '#ffffff',
+                            padding: '60px 40px 80px'
+                        }}>
+                            <div style={{
+                                maxWidth: '1200px',
+                                margin: '0 auto'
+                            }}>
+                                {/* Chat Container */}
+                                <div style={{
+                                    backgroundColor: 'white',
+                                    borderRadius: '20px',
+                                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06)',
+                                    overflow: 'hidden',
+                                    border: '1px solid #e5e7eb'
+                                }}>
+                                    {/* Simple Header with Saved Jobs button */}
+                                    {savedJobs.length > 0 && (
+                                        <div style={{
+                                            padding: '16px 24px',
+                                            backgroundColor: '#ffffff',
+                                            borderBottom: '1px solid #f3f4f6',
+                                            display: 'flex',
+                                            justifyContent: 'flex-end'
+                                        }}>
+                                            <button
+                                                onClick={() => setShowSavedJobs(!showSavedJobs)}
+                                                style={{
+                                                    padding: '8px 16px',
+                                                    backgroundColor: '#f9fafb',
+                                                    color: '#374151',
+                                                    border: '1px solid #e5e7eb',
+                                                    borderRadius: '10px',
+                                                    fontSize: '13px',
+                                                    fontWeight: '600',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px',
+                                                    transition: 'all 0.2s',
+                                                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)'
+                                                }}
+                                                onMouseOver={(e) => {
+                                                    e.target.style.backgroundColor = '#f3f4f6';
+                                                    e.target.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.06)';
+                                                }}
+                                                onMouseOut={(e) => {
+                                                    e.target.style.backgroundColor = '#f9fafb';
+                                                    e.target.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.04)';
+                                                }}
+                                            >
+                                                <BookmarkPlusIcon />
+                                                Gespeicherte Jobs ({savedJobs.length})
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Messages Area */}
+                                    <div style={{
+                                        padding: '40px 32px 20px',
+                                        minHeight: '500px',
+                                        maxHeight: '600px',
+                                        overflowY: 'auto',
+                                        backgroundColor: '#f9fafb',
+                                        position: 'relative'
+                                    }}>
+                                        <div style={{ paddingBottom: '60px' }}>
+                                        {messages.map((msg, idx) => (
+                                            <div
+                                                key={idx}
+                                                style={{
+                                                    display: 'flex',
+                                                    marginBottom: '24px',
+                                                    justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                                                    gap: '14px',
+                                                    alignItems: 'flex-start'
+                                                }}
+                                            >
+                                                {msg.role === 'assistant' && (
+                                                    <div style={{
+                                                        width: '40px',
+                                                        height: '40px',
+                                                        backgroundColor: '#3b82f6',
+                                                        borderRadius: '50%',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        flexShrink: 0,
+                                                        boxShadow: '0 2px 8px rgba(59, 130, 246, 0.25)'
+                                                    }}>
+                                                    </div>
+                                                )}
+                                                <div style={{
+                                                    maxWidth: '80%',
+                                                    padding: '16px 20px',
+                                                    borderRadius: '16px',
+                                                    backgroundColor: '#ffffff',
+                                                    color: '#111827',
+                                                    border: '1px solid #e5e7eb',
+                                                    whiteSpace: 'pre-wrap',
+                                                    wordBreak: 'break-word',
+                                                    fontSize: '15px',
+                                                    lineHeight: '1.6',
+                                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
+                                                }}>
+                                                    {msg.content}
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        {/* Loading Indicator */}
+                                        {(isLoading || isSearchingJobs) && (
+                                            <div style={{ display: 'flex', gap: '14px', marginBottom: '24px', alignItems: 'flex-start' }}>
+                                                <div style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    backgroundColor: '#3b82f6',
+                                                    borderRadius: '50%',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    flexShrink: 0,
+                                                    boxShadow: '0 2px 8px rgba(59, 130, 246, 0.25)'
+                                                }}>
+                                                </div>
+                                                <div style={{
+                                                    padding: '16px 20px',
+                                                    borderRadius: '16px',
+                                                    backgroundColor: '#ffffff',
+                                                    border: '1px solid #e5e7eb',
+                                                    display: 'flex',
+                                                    gap: '8px',
+                                                    alignItems: 'center',
+                                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
+                                                }}>
+                                                    <div className="bounce-dot" style={{ animationDelay: '0s' }}></div>
+                                                    <div className="bounce-dot" style={{ animationDelay: '0.2s' }}></div>
+                                                    <div className="bounce-dot" style={{ animationDelay: '0.4s' }}></div>
+                                                    <span style={{ marginLeft: '8px', color: '#6b7280', fontSize: '14px' }}>
+                                                        {isSearchingJobs ? 'Durchsuche Jobbörse...' : 'Sam tippt...'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Job Cards */}
+                                        {jobCards.length > 0 && (
+                                            <div style={{
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '20px',
+                                                marginTop: '20px'
+                                            }}>
+                                                {jobCards.map((job, idx) => (
+                                                    <div
+                                                        key={job.id || idx}
+                                                        style={{
+                                                            backgroundColor: 'white',
+                                                            borderRadius: '16px',
+                                                            padding: '24px',
+                                                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                                                            border: '2px solid #e5e7eb',
+                                                            maxWidth: '85%',
+                                                            margin: '0 auto',
+                                                            width: '100%'
+                                                        }}
+                                                    >
+                                                        {/* Fit Score Badge */}
+                                                        <div style={{
+                                                            display: 'inline-block',
+                                                            backgroundColor: job.fitScore >= 80 ? '#10b981' : job.fitScore >= 60 ? '#f59e0b' : '#ef4444',
+                                                            color: 'white',
+                                                            padding: '6px 14px',
+                                                            borderRadius: '20px',
+                                                            fontSize: '14px',
+                                                            fontWeight: '600',
+                                                            marginBottom: '12px'
+                                                        }}>
+                                                            {job.fitScore}% Match
+                                                        </div>
+
+                                                        {/* Job Title */}
+                                                        <h3 style={{
+                                                            margin: '0 0 8px 0',
+                                                            fontSize: '20px',
+                                                            fontWeight: '600',
+                                                            color: '#1f2937'
+                                                        }}>
+                                                            {job.title}
+                                                        </h3>
+
+                                                        {/* Company, Location, Salary */}
+                                                        <div style={{
+                                                            display: 'flex',
+                                                            gap: '16px',
+                                                            fontSize: '14px',
+                                                            color: '#6b7280',
+                                                            marginBottom: '16px',
+                                                            flexWrap: 'wrap'
+                                                        }}>
+                                                            <span>🏢 {job.company}</span>
+                                                            <span>📍 {job.location}</span>
+                                                            {job.salary && <span>💰 {job.salary}</span>}
+                                                        </div>
+
+                                                        {/* Description */}
+                                                        <p style={{
+                                                            fontSize: '15px',
+                                                            lineHeight: '1.6',
+                                                            color: '#374151',
+                                                            marginBottom: '16px'
+                                                        }}>
+                                                            {job.description}
+                                                        </p>
+
+                                                        {/* Pros */}
+                                                        {job.pros && job.pros.length > 0 && (
+                                                            <div style={{ marginBottom: '12px' }}>
+                                                                <div style={{
+                                                                    fontSize: '14px',
+                                                                    fontWeight: '600',
+                                                                    color: '#10b981',
+                                                                    marginBottom: '6px'
+                                                                }}>
+                                                                    ✅ Was passt:
+                                                                </div>
+                                                                <ul style={{
+                                                                    margin: 0,
+                                                                    paddingLeft: '20px',
+                                                                    fontSize: '14px',
+                                                                    color: '#374151'
+                                                                }}>
+                                                                    {job.pros.map((pro, i) => (
+                                                                        <li key={i} style={{ marginBottom: '4px' }}>{pro}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Cons */}
+                                                        {job.cons && job.cons.length > 0 && (
+                                                            <div style={{ marginBottom: '20px' }}>
+                                                                <div style={{
+                                                                    fontSize: '14px',
+                                                                    fontWeight: '600',
+                                                                    color: '#f59e0b',
+                                                                    marginBottom: '6px'
+                                                                }}>
+                                                                    ⚠️ Beachte:
+                                                                </div>
+                                                                <ul style={{
+                                                                    margin: 0,
+                                                                    paddingLeft: '20px',
+                                                                    fontSize: '14px',
+                                                                    color: '#374151'
+                                                                }}>
+                                                                    {job.cons.map((con, i) => (
+                                                                        <li key={i} style={{ marginBottom: '4px' }}>{con}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Action Buttons */}
+                                                        <div style={{
+                                                            display: 'flex',
+                                                            gap: '12px',
+                                                            marginTop: '20px',
+                                                            flexWrap: 'wrap'
+                                                        }}>
+                                                            <button
+                                                                onClick={() => handleJobAction(job.id, 'apply')}
+                                                                style={{
+                                                                    flex: '1',
+                                                                    minWidth: '140px',
+                                                                    padding: '12px 20px',
+                                                                    backgroundColor: '#2563eb',
+                                                                    color: 'white',
+                                                                    border: 'none',
+                                                                    borderRadius: '8px',
+                                                                    fontSize: '15px',
+                                                                    fontWeight: '600',
+                                                                    cursor: 'pointer',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    gap: '8px'
+                                                                }}
+                                                            >
+                                                                <CheckCircleIcon />
+                                                                Bewerben
+                                                            </button>
+                                                            
+                                                            <button
+                                                                onClick={() => handleJobAction(job.id, 'save')}
+                                                                style={{
+                                                                    flex: '1',
+                                                                    minWidth: '140px',
+                                                                    padding: '12px 20px',
+                                                                    backgroundColor: '#10b981',
+                                                                    color: 'white',
+                                                                    border: 'none',
+                                                                    borderRadius: '8px',
+                                                                    fontSize: '15px',
+                                                                    fontWeight: '600',
+                                                                    cursor: 'pointer',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    gap: '8px'
+                                                                }}
+                                                            >
+                                                                <BookmarkPlusIcon />
+                                                                Speichern & weiter
+                                                            </button>
+                                                            
+                                                            <button
+                                                                onClick={() => handleJobAction(job.id, 'reject')}
+                                                                style={{
+                                                                    flex: '1',
+                                                                    minWidth: '140px',
+                                                                    padding: '12px 20px',
+                                                                    backgroundColor: '#ef4444',
+                                                                    color: 'white',
+                                                                    border: 'none',
+                                                                    borderRadius: '8px',
+                                                                    fontSize: '15px',
+                                                                    fontWeight: '600',
+                                                                    cursor: 'pointer',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    gap: '8px'
+                                                                }}
+                                                            >
+                                                                <Trash2Icon />
+                                                                Verwerfen
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        <div ref={messagesEndRef} />
+                                        </div>
+                                    </div>
+
+                                    {/* Input Area */}
+                                    <div style={{
+                                        padding: '24px 28px',
+                                        backgroundColor: 'white',
+                                        borderTop: '1px solid #e5e7eb'
+                                    }}>
+                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                            <input
+                                                type="file"
+                                                ref={fileInputRef}
+                                                onChange={handleFileUpload}
+                                                accept=".txt,.pdf,.doc,.docx"
+                                                style={{ display: 'none' }}
+                                            />
+                                            
+                                            <button
+                                                onClick={() => fileInputRef.current?.click()}
+                                                disabled={isLoading || isSearchingJobs || isUploadingCV}
+                                                title="Lebenslauf hochladen"
+                                                style={{
+                                                    padding: '12px',
+                                                    backgroundColor: '#ffffff',
+                                                    border: '1px solid #d1d5db',
+                                                    borderRadius: '12px',
+                                                    cursor: (isLoading || isSearchingJobs || isUploadingCV) ? 'not-allowed' : 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    opacity: (isLoading || isSearchingJobs || isUploadingCV) ? 0.5 : 1,
+                                                    transition: 'all 0.2s',
+                                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)'
+                                                }}
+                                                onMouseOver={(e) => {
+                                                    if (!isLoading && !isSearchingJobs && !isUploadingCV) {
+                                                        e.target.style.backgroundColor = '#f9fafb';
+                                                        e.target.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.08)';
+                                                    }
+                                                }}
+                                                onMouseOut={(e) => {
+                                                    e.target.style.backgroundColor = '#ffffff';
+                                                    e.target.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.06)';
+                                                }}
+                                            >
+                                                <FileUpIcon />
+                                            </button>
+
+                                            <textarea
+                                                value={input}
+                                                onChange={(e) => setInput(e.target.value)}
+                                                onKeyPress={(e) => {
+                                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                                        e.preventDefault();
+                                                        handleSend();
+                                                    }
+                                                }}
+                                                placeholder="Oder schreib deine Antwort..."
+                                                disabled={isLoading || isSearchingJobs || isUploadingCV}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '14px 18px',
+                                                    borderRadius: '14px',
+                                                    border: '1px solid #d1d5db',
+                                                    fontSize: '15px',
+                                                    resize: 'none',
+                                                    minHeight: '50px',
+                                                    maxHeight: '120px',
+                                                    fontFamily: 'inherit',
+                                                    outline: 'none',
+                                                    transition: 'all 0.2s',
+                                                    backgroundColor: '#ffffff',
+                                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)'
+                                                }}
+                                                onFocus={(e) => {
+                                                    e.target.style.borderColor = '#3b82f6';
+                                                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06)';
+                                                }}
+                                                onBlur={(e) => {
+                                                    e.target.style.borderColor = '#d1d5db';
+                                                    e.target.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.06)';
+                                                }}
+                                                rows={1}
+                                            />
+
+                                            <button
+                                                onClick={handleSend}
+                                                disabled={!input.trim() || isLoading || isSearchingJobs || isUploadingCV}
+                                                style={{
+                                                    width: '48px',
+                                                    height: '48px',
+                                                    backgroundColor: (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) ? '#3b82f6' : '#d1d5db',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '50%',
+                                                    fontSize: '18px',
+                                                    fontWeight: '600',
+                                                    cursor: (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) ? 'pointer' : 'not-allowed',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    transition: 'all 0.2s',
+                                                    boxShadow: (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) ? '0 4px 12px rgba(59, 130, 246, 0.3)' : 'none',
+                                                    flexShrink: 0
+                                                }}
+                                                onMouseOver={(e) => {
+                                                    if (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) {
+                                                        e.target.style.backgroundColor = '#2563eb';
+                                                        e.target.style.transform = 'scale(1.05)';
+                                                        e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+                                                    }
+                                                }}
+                                                onMouseOut={(e) => {
+                                                    if (input.trim() && !isLoading && !isSearchingJobs && !isUploadingCV) {
+                                                        e.target.style.backgroundColor = '#3b82f6';
+                                                        e.target.style.transform = 'scale(1)';
+                                                        e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                                                    }
+                                                }}
+                                            >
+                                                ↑
+                                            </button>
+                                        </div>
+                                        
+                                        <div style={{ marginTop: '14px', textAlign: 'center', fontSize: '12px', color: '#9ca3af' }}>
+                                            Powered by Claude · Jobs von Bundesagentur für Arbeit
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Saved Jobs Panel */}
+                        {showSavedJobs && (
+                            <div style={{
+                                position: 'fixed',
+                                top: '0',
+                                right: '0',
+                                width: '400px',
+                                height: '100vh',
+                                backgroundColor: 'white',
+                                boxShadow: '-4px 0 8px rgba(0,0,0,0.1)',
+                                zIndex: 1000,
+                                display: 'flex',
+                                flexDirection: 'column'
+                            }}>
+                                <div style={{
+                                    padding: '20px',
+                                    borderBottom: '1px solid #e5e7eb',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
+                                    <h3 style={{ fontSize: '20px', fontWeight: '700' }}>
+                                        Gespeicherte Jobs
+                                    </h3>
+                                    <button
+                                        onClick={() => setShowSavedJobs(false)}
+                                        style={{
+                                            padding: '8px',
+                                            backgroundColor: 'transparent',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            fontSize: '24px',
+                                            color: '#6b7280'
+                                        }}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                                
+                                <div style={{
+                                    flex: 1,
+                                    overflowY: 'auto',
+                                    padding: '20px'
+                                }}>
+                                    {savedJobs.length === 0 ? (
+                                        <p style={{ color: '#6b7280', textAlign: 'center' }}>
+                                            Noch keine Jobs gespeichert
+                                        </p>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                            {savedJobs.map((job) => (
+                                                <div
+                                                    key={job.id}
+                                                    style={{
+                                                        padding: '16px',
+                                                        backgroundColor: '#f9fafb',
+                                                        borderRadius: '8px',
+                                                        border: '1px solid #e5e7eb'
+                                                    }}
+                                                >
+                                                    <h4 style={{
+                                                        fontSize: '16px',
+                                                        fontWeight: '600',
+                                                        marginBottom: '4px',
+                                                        color: '#111827'
+                                                    }}>
+                                                        {job.title}
+                                                    </h4>
+                                                    <p style={{
+                                                        fontSize: '14px',
+                                                        color: '#6b7280',
+                                                        marginBottom: '12px'
+                                                    }}>
+                                                        {job.company} · {job.location}
+                                                    </p>
+                                                    <div style={{
+                                                        display: 'flex',
+                                                        gap: '8px'
+                                                    }}>
+                                                        <button
+                                                            onClick={() => window.open(job.url, '_blank')}
+                                                            style={{
+                                                                flex: '1',
+                                                                padding: '8px 12px',
+                                                                backgroundColor: '#10b981',
+                                                                color: 'white',
+                                                                border: 'none',
+                                                                borderRadius: '6px',
+                                                                fontSize: '13px',
+                                                                fontWeight: '600',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                gap: '6px'
+                                                            }}
+                                                        >
+                                                            <CheckCircleIcon />
+                                                            Bewerben
+                                                        </button>
+                                                        
+                                                        <button
+                                                            onClick={() => {
+                                                                setSavedJobs(prev => prev.filter(j => j.id !== job.id));
+                                                            }}
+                                                            style={{
+                                                                padding: '8px 12px',
+                                                                backgroundColor: '#ef4444',
+                                                                color: 'white',
+                                                                border: 'none',
+                                                                borderRadius: '6px',
+                                                                fontSize: '13px',
+                                                                fontWeight: '600',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                gap: '6px'
+                                                            }}
+                                                        >
+                                                            <Trash2Icon />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<SamCareerCoach />);
+    </script>
+</body>
+</html>

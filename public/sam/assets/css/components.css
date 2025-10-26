@@ -1,0 +1,329 @@
+/* Component Styles for TabiCoach */
+
+/* Header */
+.header {
+    padding: 20px 40px;
+    background-color: white;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.header-version {
+    font-size: 12px;
+    color: #9ca3af;
+    background-color: #f3f4f6;
+    padding: 4px 12px;
+    border-radius: 12px;
+}
+
+/* Hero Section */
+.hero {
+    padding: 80px 40px 40px;
+    text-align: center;
+    background-color: white;
+}
+
+.hero-title {
+    font-size: 56px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 24px;
+    line-height: 1.2;
+}
+
+.hero-title .highlight {
+    color: #3b82f6;
+}
+
+.hero-subtitle {
+    font-size: 20px;
+    color: #6b7280;
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+/* Features Section */
+.features {
+    padding: 40px 40px 60px;
+    background-color: #f9fafb;
+}
+
+.features-title {
+    font-size: 32px;
+    font-weight: 700;
+    text-align: center;
+    color: #6b7280;
+    margin-bottom: 60px;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.feature-card {
+    background-color: white;
+    padding: 32px;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.feature-icon {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.feature-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 12px;
+}
+
+.feature-description {
+    font-size: 15px;
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+/* Chat Section */
+.chat-section {
+    background-color: #ffffff;
+    padding: 60px 40px 80px;
+}
+
+.chat-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.chat-box {
+    background-color: white;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+}
+
+/* Saved Jobs Header */
+.saved-jobs-header {
+    padding: 16px 24px;
+    background-color: #ffffff;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.saved-jobs-button {
+    padding: 8px 16px;
+    background-color: #f9fafb;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.saved-jobs-button:hover {
+    background-color: #f3f4f6;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* Messages Area */
+.messages-area {
+    padding: 40px 32px 20px;
+    min-height: 500px;
+    max-height: 600px;
+    overflow-y: auto;
+    background-color: #f9fafb;
+    position: relative;
+}
+
+.messages-container {
+    padding-bottom: 60px;
+}
+
+.message {
+    display: flex;
+    margin-bottom: 24px;
+    gap: 14px;
+    align-items: flex-start;
+}
+
+.message.user {
+    justify-content: flex-end;
+}
+
+.message.assistant {
+    justify-content: flex-start;
+}
+
+.message-avatar {
+    width: 40px;
+    height: 40px;
+    background-color: #3b82f6;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+}
+
+.message-content {
+    max-width: 80%;
+    padding: 16px 20px;
+    border-radius: 16px;
+    background-color: #ffffff;
+    color: #111827;
+    border: 1px solid #e5e7eb;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 15px;
+    line-height: 1.6;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* Loading Indicator */
+.loading-indicator {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 24px;
+    align-items: flex-start;
+}
+
+.loading-content {
+    padding: 16px 20px;
+    border-radius: 16px;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.loading-text {
+    margin-left: 8px;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+/* Input Area */
+.input-area {
+    padding: 24px 28px;
+    background-color: white;
+    border-top: 1px solid #e5e7eb;
+}
+
+.input-container {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.file-input {
+    display: none;
+}
+
+.file-upload-button {
+    padding: 12px;
+    background-color: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.file-upload-button:hover {
+    background-color: #f9fafb;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.file-upload-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.message-input {
+    flex: 1;
+    padding: 14px 18px;
+    border-radius: 14px;
+    border: 1px solid #d1d5db;
+    font-size: 15px;
+    resize: none;
+    min-height: 50px;
+    max-height: 120px;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.2s;
+    background-color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.message-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.send-button {
+    width: 48px;
+    height: 48px;
+    background-color: #d1d5db;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: not-allowed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.send-button.active {
+    background-color: #3b82f6;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.send-button.active:hover {
+    background-color: #2563eb;
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.input-footer {
+    margin-top: 14px;
+    text-align: center;
+    font-size: 12px;
+    color: #9ca3af;
+}

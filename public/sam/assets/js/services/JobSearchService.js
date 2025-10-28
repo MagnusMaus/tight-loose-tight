@@ -74,73 +74,51 @@ const JobSearchService = {
         }
     },
 
-    // Send jobs to Sam for analysis and get job card
+    // Send jobs to Sam for analysis and ranking - NEW MULTI-JOB APPROACH
     analyzeJobsWithSam: async (foundJobs, currentMessages, systemPrompt) => {
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('📤 DEBUG: Sending jobs to Sam for ANALYSIS');
+        console.log('📤 DEBUG: Sending jobs to Sam for RANKING ANALYSIS');
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         console.log(`   Jobs found: ${foundJobs.jobs.length}`);
         console.log(`   Query: "${foundJobs.query}"`);
         console.log(`   Location: "${foundJobs.location}"`);
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         
-        const jobsContext = `[SYSTEM: JOB-ANALYSE-MODUS]
+        // Create job analysis prompt as system context
+        const jobAnalysisSystemPrompt = systemPrompt + `
 
-Hier sind ${foundJobs.jobs.length} Jobs von der Bundesagentur für "${foundJobs.query}" in "${foundJobs.location}":
+[JOB-RANKING-MODUS]
+Hier sind ${foundJobs.jobs.length} Jobs zur Analyse:
 
-${foundJobs.jobs.slice(0, 5).map((job, i) => `
-Job ${i + 1}:
-- Titel: ${job.title}
-- Firma: ${job.company}
-- Ort: ${job.location}
-- Beschreibung: ${job.description}
-- Link: ${job.url}
-`).join('\n')}
+${foundJobs.jobs.slice(0, 5).map((job, i) => `Job ${i + 1}: ${job.title} bei ${job.company} in ${job.location}
+Beschreibung: ${job.description}
+URL: ${job.url}`).join('\n\n')}
 
-DEINE AUFGABE:
-1. Bewerte ALLE 5 Jobs intern (50% psychografisch, 30% Skills, 20% Umfeld)
-2. Wähle den BESTEN Job basierend auf dem Persönlichkeitsprofil
-3. Erstelle EINE JOB_CARD für diesen Job
+AUFGABE:
+1. Bewerte ALLE Jobs (50% psychografisch, 30% fachlich, 20% Umfeld)
+2. Erstelle JOB_CARD für JEDEN Job mit 70%+ Fit-Score
+3. Sortiere nach Fit-Score (beste zuerst)
+4. Bei Fit-Score unter 70%: SCHWEIGEN (kein Output)
 
-ABSOLUT KRITISCH - NULL TOLERANZ:
-❌ NIEMALS Text ausgeben wenn Jobs unter 70% Fit-Score liegen!
-❌ KEINE Erklärungen, KEINE Nachrichten, KEIN Output!
-❌ NICHT "[Keine Ausgabe - ...]" oder ähnliche Kommentare!
-❌ KEINEN TRIGGER_SEARCH verwenden!
-
-VERHALTEN bei Jobs unter 70%:
-- Analysiere intern die Jobs
-- Falls ALLE unter 70% Fit-Score: GIB NICHTS AUS - KOMPLETT LEER!
-- Keine Begründungen, keine Kommentare, keine Nachrichten
-- Das System sucht automatisch weiter mit anderen Begriffen
-
-QUALITÄTS-STANDARD:
-- Fit-Score 80%+: Perfekter Match → JOB_CARD erstellen
-- Fit-Score 70-79%: Guter Match → JOB_CARD erstellen  
-- Fit-Score unter 70%: SCHWEIGEN - absolut kein Output!
-
-Format NUR bei Fit-Score 70%+:
-[JOB_CARD:{
-  "description": "Ausführliche Analyse warum dieser Job perfekt zum Persönlichkeitsprofil passt",
-  "fitScore": 75,
-  "pros": ["Spezifische Gründe basierend auf Persönlichkeitsprofil"],
-  "cons": ["Was beachtenswert ist"],
-  ...
-}]
-
-WICHTIG: Bei schlechten Jobs = KOMPLETT SCHWEIGEN!`;
-
+MEHRFACH-OUTPUT Erlaubt:
+- Mehrere JOB_CARDs nacheinander für verschiedene Jobs
+- Jede JOB_CARD separat mit [JOB_CARD:{...}]
+- Keine zusätzlichen Texte zwischen den Karten`;
+        
+        // Simple user message to trigger analysis
+        const userPrompt = `Analysiere diese ${foundJobs.jobs.length} Jobs für mein Profil und erstelle Job Cards für alle passenden Stellen.`;
+        
         const updatedMessages = [...currentMessages, {
             role: 'user',
-            content: jobsContext
+            content: userPrompt
         }];
 
         try {
-            const samData = await ApiService.chatWithSam(updatedMessages, systemPrompt, { isJobAnalysis: true });
+            const samData = await ApiService.chatWithSam(updatedMessages, jobAnalysisSystemPrompt, { isJobAnalysis: true });
             const assistantMessage = samData.content[0].text;
             
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            console.log('🤖 SAM\'S ANALYSIS RESPONSE:');
+            console.log('🤖 SAM\'S RANKING RESPONSE:');
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             console.log(assistantMessage);
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

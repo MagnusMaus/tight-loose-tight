@@ -129,15 +129,18 @@ Es gibt NUR ZWEI Situationen wo du diese Tags verwendest:
 
 WENN DU JOBS ZUR ANALYSE BEKOMMST:
 - Das System sendet dir 5 Jobs mit: Titel, Firma, Ort, Beschreibung
-- Du MUSST dann SOFORT eine JOB_CARD erstellen
-- Bewerte ALLE 5 Jobs intern (50% psychografisch!)
-- Wähle den BESTEN aus
-- Erstelle NUR eine JOB_CARD - KEINEN TRIGGER_SEARCH!
+- Bewerte ALLE 5 Jobs intern (50% psychografisch, 30% fachlich, 20% Umfeld)
+- Erstelle JOB_CARD für JEDEN Job mit Fit-Score 70%+
+- Sortiere nach Fit-Score (beste zuerst)
+- KEINEN TRIGGER_SEARCH verwenden!
 
-WICHTIG: Gib NUR die JOB_CARD aus, KEINEN zusätzlichen Chat-Text!
-Alle Informationen gehören IN die JOB_CARD (description, pros, cons).
+MEHRFACH-OUTPUT ERLAUBT:
+- Du kannst MEHRERE JOB_CARDs erstellen (eine pro passendem Job)
+- Jede Karte separat mit [JOB_CARD:{...}]
+- Jobs unter 70% Fit-Score: IGNORIEREN (keine Karte erstellen)
+- Keine zusätzlichen Texte zwischen Karten
 
-Format:
+Format pro Job mit 70%+ Fit-Score:
 
 [JOB_CARD:{
   "title": "Job Titel",
@@ -150,6 +153,11 @@ Format:
   "cons": ["Was beachtenswert ist oder nicht optimal passt"],
   "applyUrl": "https://..."
 }]
+
+BEISPIEL für 3 passende Jobs:
+[JOB_CARD:{"title":"COO","fitScore":87,...}]
+[JOB_CARD:{"title":"Operations Manager","fitScore":78,...}]
+[JOB_CARD:{"title":"Change Manager","fitScore":74,...}]
 
 WENN USER "SPEICHERN & WEITER" SAGT:
 - User will mehr Optionen sehen
@@ -274,28 +282,39 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
             }
         }
         
-        // STEP 2: Check for JOB_CARD
-        console.log('🔍 DEBUG: Checking for JOB_CARD...');
-        const parsed = Helpers.parseJobCard(assistantMessage);
-        console.log('   Found:', parsed ? 'YES ✅' : 'NO ❌');
+        // STEP 2: Check for JOB_CARD(S) - Updated for multi-card support
+        console.log('🔍 DEBUG: Checking for JOB_CARD(S)...');
+        const parseResult = Helpers.parseAllJobCards(assistantMessage);
+        console.log('   Found:', parseResult.count > 0 ? `YES ✅ (${parseResult.count} cards)` : 'NO ❌');
         
-        if (parsed) {
-            console.log('📋 DEBUG: JOB_CARD detected and parsed!');
+        if (parseResult.count > 0) {
+            console.log(`📋 DEBUG: ${parseResult.count} JOB_CARD(S) detected and parsed!`);
             
-            const newCard = { ...parsed.jobData, id: Helpers.generateId() };
-            setJobCards(prev => [...prev, newCard]);
+            // Process all job cards
+            const newCards = parseResult.jobCards.map(jobData => ({
+                ...jobData,
+                id: Helpers.generateId()
+            }));
             
-            // Track this job URL as "shown"
-            const jobKey = parsed.jobData.applyUrl || parsed.jobData.url || `${parsed.jobData.title}_${parsed.jobData.company}`;
-            setShownJobUrls(prev => new Set([...prev, jobKey]));
-            console.log(`✅ Added to shown jobs: "${parsed.jobData.title}"`);
+            // Add all cards to state
+            setJobCards(prev => [...prev, ...newCards]);
             
-            // WICHTIG: Kein zusätzlicher Chat-Text mehr - alles ist in der Job Card
-            if (parsed.cleanText && parsed.cleanText.trim().length > 0) {
-                console.log('⚠️ WARNING: Sam sent text before JOB_CARD (should not happen):', parsed.cleanText);
-                // Trotzdem anzeigen für Debugging, aber das sollte nicht passieren
-                setMessages(prev => [...prev, { role: 'assistant', content: parsed.cleanText }]);
+            // Track all job URLs as "shown"
+            const newJobKeys = new Set();
+            parseResult.jobCards.forEach(jobData => {
+                const jobKey = jobData.applyUrl || jobData.url || `${jobData.title}_${jobData.company}`;
+                newJobKeys.add(jobKey);
+                console.log(`✅ Added to shown jobs: "${jobData.title || 'Unknown'}"`);
+            });
+            
+            setShownJobUrls(prev => new Set([...prev, ...newJobKeys]));
+            
+            // Show any additional text if present
+            if (parseResult.cleanText && parseResult.cleanText.trim().length > 0) {
+                console.log('💬 Additional text with job cards:', parseResult.cleanText);
+                setMessages(prev => [...prev, { role: 'assistant', content: parseResult.cleanText }]);
             }
+            
             return true;
         }
         
@@ -348,106 +367,114 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
                 }
             }
             
-            // Send jobs to Sam for analysis  
+            // Send jobs to Sam for analysis and ranking
             const assistantMessage = await JobSearchService.analyzeJobsWithSam(
                 foundJobs, 
                 currentMessages, 
                 getSystemPrompt()
             );
             
-            // If no quality job found, auto-search with psychographic alternatives
-            if (!assistantMessage || !assistantMessage.includes('[JOB_CARD:')) {
-                console.log('🧠 No quality jobs - trying psychographic alternatives...');
+            // Process multiple job cards
+            const parseResult = Helpers.parseAllJobCards(assistantMessage);
+            
+            if (parseResult.count > 0) {
+                console.log(`🏆 Found ${parseResult.count} job cards!`);
                 
-                const psychographicAlternatives = [
-                    'Change Manager', 'Transformation Manager', 'Organisationsentwickler',
-                    'Business Development Manager', 'Strategie Manager', 'Prozess Manager',
-                    'Team Lead', 'Abteilungsleiter', 'Projektleiter', 'Product Manager',
-                    'Beratung', 'Consulting', 'Management Consultant', 'Berater'
-                ];
+                // Filter for quality jobs (70%+ fit score)
+                const qualityJobs = parseResult.jobCards.filter(job => job.fitScore >= 70);
+                console.log(`   ✨ Quality jobs (70%+): ${qualityJobs.length}`);
                 
-                for (const altQuery of psychographicAlternatives) {
-                    console.log(`🔄 Trying psychographic alternative: ${altQuery}`);
-                    const altJobs = await JobSearchService.searchJobsIntelligent(
-                        altQuery, 
-                        location, 
+                if (qualityJobs.length > 0) {
+                    // Add all quality jobs
+                    const newCards = qualityJobs.map(jobData => ({
+                        ...jobData,
+                        id: Helpers.generateId()
+                    }));
+                    
+                    setJobCards(prev => [...prev, ...newCards]);
+                    
+                    // Track all job URLs as "shown"
+                    qualityJobs.forEach(jobData => {
+                        const jobKey = jobData.applyUrl || jobData.url || `${jobData.title}_${jobData.company}`;
+                        setShownJobUrls(prev => new Set([...prev, jobKey]));
+                        console.log(`✅ Added quality job: "${jobData.title}" (${jobData.fitScore}%)`);
+                    });
+                    
+                    // Show any additional text
+                    if (parseResult.cleanText && parseResult.cleanText.trim().length > 0) {
+                        setMessages(prev => [...prev, { role: 'assistant', content: parseResult.cleanText }]);
+                    }
+                    
+                    // Check if we should continue searching (if all jobs are under 80% fit)
+                    const highQualityJobs = qualityJobs.filter(job => job.fitScore >= 80);
+                    if (highQualityJobs.length === 0 && qualityJobs.length > 0) {
+                        console.log('🔄 All jobs under 80% fit - continuing search for better matches...');
+                        // Continue searching in background for better matches
+                        setTimeout(() => {
+                            searchJobs(query, location, currentMessages);
+                        }, 2000);
+                    }
+                    
+                    setIsSearchingJobs(false);
+                    return foundJobs.jobs;
+                }
+            }
+            
+            // No quality jobs found - try psychographic alternatives
+            console.log('🧠 No quality jobs found - trying psychographic alternatives...');
+            
+            const psychographicAlternatives = [
+                'Change Manager', 'Transformation Manager', 'Organisationsentwickler',
+                'Business Development Manager', 'Strategie Manager', 'Prozess Manager',
+                'Team Lead', 'Abteilungsleiter', 'Projektleiter', 'Product Manager',
+                'Beratung', 'Consulting', 'Management Consultant', 'Berater'
+            ];
+            
+            for (const altQuery of psychographicAlternatives) {
+                console.log(`🔄 Trying psychographic alternative: ${altQuery}`);
+                const altJobs = await JobSearchService.searchJobsIntelligent(
+                    altQuery, 
+                    location, 
+                    currentMessages, 
+                    shownJobUrls
+                );
+                
+                if (altJobs) {
+                    const altMessage = await JobSearchService.analyzeJobsWithSam(
+                        altJobs, 
                         currentMessages, 
-                        shownJobUrls
+                        getSystemPrompt()
                     );
                     
-                    if (altJobs) {
-                        const altMessage = await JobSearchService.analyzeJobsWithSam(
-                            altJobs, 
-                            currentMessages, 
-                            getSystemPrompt()
-                        );
-                        
-                        if (altMessage && altMessage.includes('[JOB_CARD:')) {
-                            console.log(`✅ Found quality job with alternative: ${altQuery}`);
-                            const parsed = Helpers.parseJobCard(altMessage);
-                            if (parsed && parsed.jobData.fitScore >= 70) {
-                                const newCard = { ...parsed.jobData, id: Helpers.generateId() };
-                                setJobCards(prev => [...prev, newCard]);
-                                const jobKey = parsed.jobData.applyUrl || parsed.jobData.url || `${parsed.jobData.title}_${parsed.jobData.company}`;
+                    const altParseResult = Helpers.parseAllJobCards(altMessage);
+                    if (altParseResult.count > 0) {
+                        const altQualityJobs = altParseResult.jobCards.filter(job => job.fitScore >= 70);
+                        if (altQualityJobs.length > 0) {
+                            console.log(`✅ Found ${altQualityJobs.length} quality jobs with alternative: ${altQuery}`);
+                            
+                            const newCards = altQualityJobs.map(jobData => ({
+                                ...jobData,
+                                id: Helpers.generateId()
+                            }));
+                            
+                            setJobCards(prev => [...prev, ...newCards]);
+                            
+                            altQualityJobs.forEach(jobData => {
+                                const jobKey = jobData.applyUrl || jobData.url || `${jobData.title}_${jobData.company}`;
                                 setShownJobUrls(prev => new Set([...prev, jobKey]));
-                                setIsSearchingJobs(false);
-                                return altJobs.jobs;
-                            }
+                            });
+                            
+                            setIsSearchingJobs(false);
+                            return altJobs.jobs;
                         }
                     }
                 }
-                
-                console.log('⚠️ Exhausted all psychographic alternatives');
-                setIsSearchingJobs(false);
-                return null;
             }
             
-            const parsed = Helpers.parseJobCard(assistantMessage);
-            
-            if (parsed) {
-                // Only accept jobs with 70%+ fit score
-                if (parsed.jobData.fitScore >= 70) {
-                    const newCard = { ...parsed.jobData, id: Helpers.generateId() };
-                    setJobCards(prev => [...prev, newCard]);
-                    
-                    // Track this job URL as "shown"
-                    const jobKey = parsed.jobData.applyUrl || parsed.jobData.url || `${parsed.jobData.title}_${parsed.jobData.company}`;
-                    setShownJobUrls(prev => new Set([...prev, jobKey]));
-                    
-                    if (parsed.cleanText) {
-                        setMessages(prev => [...prev, { role: 'assistant', content: parsed.cleanText }]);
-                    }
-                } else {
-                    console.log(`🚫 Rejected job with low fit score: ${parsed.jobData.fitScore}% - continuing search`);
-                    // Continue searching automatically - Sam will find better matches
-                    return null; // This will trigger continued search
-                }
-            } else {
-                // No job card found - Sam either sent empty response (good) or text (bad)
-                if (assistantMessage.trim().length > 0) {
-                    console.log('⚠️ CRITICAL: Sam sent text instead of staying silent!');
-                    console.log('⚠️ Forbidden text:', assistantMessage);
-                    // DO NOT show this to user - Sam must learn to stay silent
-                    
-                    // Check if Sam returned a TRIGGER_SEARCH anyway
-                    if (assistantMessage.includes('[TRIGGER_SEARCH:')) {
-                        console.log('🔍 Response contains TRIGGER_SEARCH - Sam wants to search differently!');
-                        const messagesWithResponse = [...currentMessages, { role: 'assistant', content: assistantMessage }];
-                        await processSamResponse(assistantMessage, messagesWithResponse);
-                        return foundJobs.jobs;
-                    }
-                } else {
-                    console.log('✅ Sam correctly stayed silent - no quality jobs found');
-                }
-                
-                // Auto-continue search with psychographic alternatives
-                console.log('🔄 No quality jobs found - auto-searching with psychographic alternatives...');
-                return null; // This triggers intelligent continuation
-            }
-            
+            console.log('⚠️ Exhausted all alternatives');
             setIsSearchingJobs(false);
-            return foundJobs.jobs;
-
+            return null;
+            
         } catch (error) {
             console.error('❌ CRITICAL ERROR in searchJobs:', error);
             console.error('Error details:', {

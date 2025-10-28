@@ -52,7 +52,7 @@ In welcher beruflichen Situation befindest du dich gerade?`;
         }
     },
 
-    // Parse job card from text
+    // Parse job card from text - UPDATED for multiple cards
     parseJobCard: (text) => {
         console.log('🔍 parseJobCard() called');
         console.log('   Input length:', text.length, 'chars');
@@ -110,6 +110,38 @@ In welcher beruflichen Situation befindest du dich gerade?`;
             console.error('   ❌ Error parsing job card JSON:', e);
             return null;
         }
+    },
+
+    // Parse ALL job cards from text - NEW function for multi-card support
+    parseAllJobCards: (text) => {
+        console.log('🔍 parseAllJobCards() called');
+        console.log('   Input length:', text.length, 'chars');
+        
+        const jobCards = [];
+        let remainingText = text;
+        let safetyCounter = 0;
+        
+        while (remainingText && safetyCounter < 10) { // Max 10 cards safety
+            safetyCounter++;
+            const result = Helpers.parseJobCard(remainingText);
+            
+            if (!result) {
+                break; // No more cards found
+            }
+            
+            jobCards.push(result.jobData);
+            remainingText = result.cleanText;
+            
+            console.log(`   ✅ Parsed job card ${safetyCounter}: "${result.jobData.title || 'Unknown'}"`);
+        }
+        
+        console.log(`   🏆 Total job cards found: ${jobCards.length}`);
+        
+        return {
+            jobCards,
+            cleanText: remainingText,
+            count: jobCards.length
+        };
     },
 
     // Generate query variants for job search

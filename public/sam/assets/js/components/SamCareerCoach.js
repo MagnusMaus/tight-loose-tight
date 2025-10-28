@@ -4,6 +4,7 @@ const SamCareerCoach = () => {
     const [input, setInput] = React.useState('');
     const [isLoading, setIsLoading] = React.useState(false);
     const [jobCards, setJobCards] = React.useState([]);
+    const [jobQueue, setJobQueue] = React.useState([]); // Queue of ranked jobs from Sam
     const [savedJobs, setSavedJobs] = React.useState([]);
     const [showSavedJobs, setShowSavedJobs] = React.useState(false);
     const [isSearchingJobs, setIsSearchingJobs] = React.useState(false);
@@ -282,7 +283,7 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
             }
         }
         
-        // STEP 2: Check for JOB_CARD(S) - Updated for multi-card support
+        // STEP 2: Check for JOB_CARD(S) - Queue system for one-at-a-time display
         console.log('🔍 DEBUG: Checking for JOB_CARD(S)...');
         const parseResult = Helpers.parseAllJobCards(assistantMessage);
         console.log('   Found:', parseResult.count > 0 ? `YES ✅ (${parseResult.count} cards)` : 'NO ❌');
@@ -290,32 +291,42 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
         if (parseResult.count > 0) {
             console.log(`📋 DEBUG: ${parseResult.count} JOB_CARD(S) detected and parsed!`);
             
-            // Process all job cards
-            const newCards = parseResult.jobCards.map(jobData => ({
-                ...jobData,
-                id: Helpers.generateId()
-            }));
+            // Filter for quality jobs and sort by fit score (best first)
+            const qualityJobs = parseResult.jobCards
+                .filter(job => job.fitScore >= 70)
+                .sort((a, b) => b.fitScore - a.fitScore)
+                .map(jobData => ({
+                    ...jobData,
+                    id: Helpers.generateId()
+                }));
             
-            // Add all cards to state
-            setJobCards(prev => [...prev, ...newCards]);
+            console.log(`   ⭐ Quality jobs (70%+): ${qualityJobs.length}`);
             
-            // Track all job URLs as "shown"
-            const newJobKeys = new Set();
-            parseResult.jobCards.forEach(jobData => {
-                const jobKey = jobData.applyUrl || jobData.url || `${jobData.title}_${jobData.company}`;
-                newJobKeys.add(jobKey);
-                console.log(`✅ Added to shown jobs: "${jobData.title || 'Unknown'}"`);
-            });
-            
-            setShownJobUrls(prev => new Set([...prev, ...newJobKeys]));
-            
-            // Show any additional text if present
-            if (parseResult.cleanText && parseResult.cleanText.trim().length > 0) {
-                console.log('💬 Additional text with job cards:', parseResult.cleanText);
-                setMessages(prev => [...prev, { role: 'assistant', content: parseResult.cleanText }]);
+            if (qualityJobs.length > 0) {
+                // Add to job queue
+                setJobQueue(prev => [...prev, ...qualityJobs]);
+                
+                // Show ONLY the first (best) job immediately
+                const bestJob = qualityJobs[0];
+                setJobCards([bestJob]);
+                
+                // Track job URLs as "shown"
+                qualityJobs.forEach(jobData => {
+                    const jobKey = jobData.applyUrl || jobData.url || `${jobData.title}_${jobData.company}`;
+                    setShownJobUrls(prev => new Set([...prev, jobKey]));
+                    console.log(`✅ Queued job: "${jobData.title || 'Unknown'}" (${jobData.fitScore}%)`);
+                });
+                
+                console.log(`🎯 Showing best job: "${bestJob.title}" (${bestJob.fitScore}%). ${qualityJobs.length - 1} more in queue.`);
+                
+                // Show any additional text if present
+                if (parseResult.cleanText && parseResult.cleanText.trim().length > 0) {
+                    console.log('💬 Additional text with job cards:', parseResult.cleanText);
+                    setMessages(prev => [...prev, { role: 'assistant', content: parseResult.cleanText }]);
+                }
+                
+                return true;
             }
-            
-            return true;
         }
         
         // STEP 3: Normal text
@@ -385,34 +396,40 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
                 console.log(`   ✨ Quality jobs (70%+): ${qualityJobs.length}`);
                 
                 if (qualityJobs.length > 0) {
-                    // Add all quality jobs
-                    const newCards = qualityJobs.map(jobData => ({
-                        ...jobData,
-                        id: Helpers.generateId()
-                    }));
+                    // Sort by fit score and assign IDs
+                    const sortedJobs = qualityJobs
+                        .sort((a, b) => b.fitScore - a.fitScore)
+                        .map(jobData => ({
+                            ...jobData,
+                            id: Helpers.generateId()
+                        }));
                     
-                    setJobCards(prev => [...prev, ...newCards]);
+                    console.log('🏆 SORTED JOBS:');
+                    sortedJobs.forEach((job, i) => {
+                        console.log(`   ${i + 1}. "${job.title}" (${job.fitScore}%) at ${job.company}`);
+                    });
+                    
+                    // Add remaining jobs to queue (excluding the first one)
+                    if (sortedJobs.length > 1) {
+                        setJobQueue(prev => [...prev, ...sortedJobs.slice(1)]);
+                        console.log(`📊 Added ${sortedJobs.length - 1} jobs to queue`);
+                    }
+                    
+                    // Show ONLY the BEST job immediately
+                    const bestJob = sortedJobs[0];
+                    setJobCards([bestJob]);
                     
                     // Track all job URLs as "shown"
-                    qualityJobs.forEach(jobData => {
+                    sortedJobs.forEach(jobData => {
                         const jobKey = jobData.applyUrl || jobData.url || `${jobData.title}_${jobData.company}`;
                         setShownJobUrls(prev => new Set([...prev, jobKey]));
-                        console.log(`✅ Added quality job: "${jobData.title}" (${jobData.fitScore}%)`);
                     });
+                    
+                    console.log(`🎯 Showing ONLY best job: "${bestJob.title}" (${bestJob.fitScore}%). ${sortedJobs.length - 1} more in queue.`);
                     
                     // Show any additional text
                     if (parseResult.cleanText && parseResult.cleanText.trim().length > 0) {
                         setMessages(prev => [...prev, { role: 'assistant', content: parseResult.cleanText }]);
-                    }
-                    
-                    // Check if we should continue searching (if all jobs are under 80% fit)
-                    const highQualityJobs = qualityJobs.filter(job => job.fitScore >= 80);
-                    if (highQualityJobs.length === 0 && qualityJobs.length > 0) {
-                        console.log('🔄 All jobs under 80% fit - continuing search for better matches...');
-                        // Continue searching in background for better matches
-                        setTimeout(() => {
-                            searchJobs(query, location, currentMessages);
-                        }, 2000);
                     }
                     
                     setIsSearchingJobs(false);
@@ -452,17 +469,33 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
                         if (altQualityJobs.length > 0) {
                             console.log(`✅ Found ${altQualityJobs.length} quality jobs with alternative: ${altQuery}`);
                             
-                            const newCards = altQualityJobs.map(jobData => ({
-                                ...jobData,
-                                id: Helpers.generateId()
-                            }));
+                            const sortedAltJobs = altQualityJobs
+                                .sort((a, b) => b.fitScore - a.fitScore)
+                                .map(jobData => ({
+                                    ...jobData,
+                                    id: Helpers.generateId()
+                                }));
                             
-                            setJobCards(prev => [...prev, ...newCards]);
+                            console.log('🏆 SORTED ALTERNATIVE JOBS:');
+                            sortedAltJobs.forEach((job, i) => {
+                                console.log(`   ${i + 1}. "${job.title}" (${job.fitScore}%) at ${job.company}`);
+                            });
                             
-                            altQualityJobs.forEach(jobData => {
+                            // Add remaining jobs to queue (excluding the first one)
+                            if (sortedAltJobs.length > 1) {
+                                setJobQueue(prev => [...prev, ...sortedAltJobs.slice(1)]);
+                                console.log(`📊 Added ${sortedAltJobs.length - 1} alternative jobs to queue`);
+                            }
+                            
+                            // Show ONLY the best alternative job
+                            setJobCards([sortedAltJobs[0]]);
+                            
+                            sortedAltJobs.forEach(jobData => {
                                 const jobKey = jobData.applyUrl || jobData.url || `${jobData.title}_${jobData.company}`;
                                 setShownJobUrls(prev => new Set([...prev, jobKey]));
                             });
+                            
+                            console.log(`🎯 Showing ONLY best alternative: "${sortedAltJobs[0].title}" (${sortedAltJobs[0].fitScore}%). ${sortedAltJobs.length - 1} more in queue.`);
                             
                             setIsSearchingJobs(false);
                             return altJobs.jobs;
@@ -573,6 +606,23 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
         }
     };
 
+    // Show next job from queue
+    const showNextJobFromQueue = () => {
+        console.log('🔄 DEBUG: Checking job queue for next job...');
+        
+        if (jobQueue.length > 0) {
+            const nextJob = jobQueue[0];
+            setJobQueue(prev => prev.slice(1)); // Remove first job from queue
+            setJobCards([nextJob]); // Show next job
+            
+            console.log(`🎯 Showing next job from queue: "${nextJob.title}" (${nextJob.fitScore}%). ${jobQueue.length - 1} remaining in queue.`);
+            return true;
+        }
+        
+        console.log('🚨 Queue empty - need to search for more jobs');
+        return false;
+    };
+
     // Handle job actions
     const handleJobAction = async (jobId, action) => {
         console.log('🎬 DEBUG: handleJobAction called', action, jobId);
@@ -585,7 +635,7 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
             userResponse = `Ich möchte mich für "${job.title}" bewerben.`;
             if (job.applyUrl || job.url) window.open(job.applyUrl || job.url, '_blank');
         } else if (action === 'save') {
-            console.log('💾 DEBUG: User clicked SAVE button - expecting TRIGGER_SEARCH in response!');
+            console.log('💾 DEBUG: User clicked SAVE button - show next job from queue or search!');
             setSavedJobs(prev => {
                 if (prev.find(j => j.id === jobId)) return prev;
                 return [...prev, job];
@@ -597,8 +647,20 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
 
         console.log('📤 DEBUG: Sending to Sam:', userResponse);
         
-        setJobCards(prev => prev.filter(j => j.id !== jobId));
+        // Remove current job card
+        setJobCards([]);
+        
+        // Try to show next job from queue first
+        if (action === 'save' || action === 'reject') {
+            if (showNextJobFromQueue()) {
+                // Successfully showed next job from queue - no need to contact Sam
+                const userMessage = { role: 'user', content: userResponse };
+                setMessages(prev => [...prev, userMessage]);
+                return;
+            }
+        }
 
+        // No more jobs in queue - contact Sam for new search
         const userMessage = { role: 'user', content: userResponse };
         const updatedMessages = [...messages, userMessage];
         setMessages(updatedMessages);

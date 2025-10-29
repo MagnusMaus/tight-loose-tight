@@ -597,9 +597,22 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
 
         } catch (error) {
             console.error('❌ Error:', error);
+            
+            // Check if it's a temporary API overload error
+            const isOverloadError = error.message && (
+                error.message.includes('529') || 
+                error.message.includes('Overloaded') ||
+                error.message.includes('503') ||
+                error.message.includes('502')
+            );
+            
+            const errorMessage = isOverloadError 
+                ? 'Die KI ist momentan überlastet. Das ist temporär - bitte versuche es in ein paar Sekunden nochmal. 🔄'
+                : 'Technischer Fehler. Bitte nochmal versuchen.';
+                
             setMessages(prev => [...prev, { 
                 role: 'assistant', 
-                content: 'Technischer Fehler. Bitte nochmal versuchen.' 
+                content: errorMessage
             }]);
         } finally {
             setIsLoading(false);
@@ -676,9 +689,22 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
 
         } catch (error) {
             console.error('❌ Error:', error);
+            
+            // Check if it's a temporary API overload error
+            const isOverloadError = error.message && (
+                error.message.includes('529') || 
+                error.message.includes('Overloaded') ||
+                error.message.includes('503') ||
+                error.message.includes('502')
+            );
+            
+            const errorMessage = isOverloadError 
+                ? 'Die KI ist momentan überlastet. Lass uns in ein paar Sekunden weitermachen! 🔄'
+                : 'Fehler. Lass uns weitermachen! 🔧';
+                
             setMessages(prev => [...prev, {
                 role: 'assistant',
-                content: 'Fehler. Lass uns weitermachen! 🔧'
+                content: errorMessage
             }]);
         } finally {
             setIsLoading(false);

@@ -137,51 +137,92 @@ exports.handler = async (event, context) => {
       totalRequestSize: totalContentLength + systemLength
     });
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        messages: messages,
-        system: system
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Claude API error details:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
-        body: errorText
-      });
-      
-      // Try to parse as JSON, fallback to text
-      let errorData;
+    // Retry logic for temporary errors
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY = 2000; // 2 seconds
+    
+    let lastError;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
-        errorData = JSON.parse(errorText);
-      } catch {
-        errorData = { message: errorText };
+        if (attempt > 1) {
+          console.log(`🔄 Retry attempt ${attempt}/${MAX_RETRIES} after ${RETRY_DELAY}ms...`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * attempt)); // Exponential backoff
+        }
+        
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 4000,
+            messages: messages,
+            system: system
+          })
+        });
+
+        if (response.ok) {
+          // Success!
+          if (attempt > 1) {
+            console.log(`✅ Request succeeded on attempt ${attempt}`);
+          }
+          
+          const data = await response.json();
+          return {
+            statusCode: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            },
+            body: JSON.stringify(data)
+          };
+        }
+        
+        // Handle error response
+        const errorText = await response.text();
+        console.error(`❌ Claude API error (attempt ${attempt}):`, {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        
+        // Try to parse as JSON, fallback to text
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText };
+        }
+        
+        const errorMessage = errorData.error?.message || errorData.message || errorText;
+        
+        // Check if it's a retryable error
+        if (response.status === 429 || response.status === 500 || response.status === 502 || response.status === 503 || response.status === 529) {
+          lastError = new Error(`Claude API returned ${response.status}: ${errorMessage}`);
+          console.log(`⚠️ Retryable error (${response.status}), will retry...`);
+          continue; // Retry
+        } else {
+          // Non-retryable error - throw immediately
+          throw new Error(`Claude API returned ${response.status}: ${errorMessage}`);
+        }
+        
+      } catch (fetchError) {
+        lastError = fetchError;
+        console.error(`❌ Fetch error (attempt ${attempt}):`, fetchError.message);
+        
+        if (attempt === MAX_RETRIES) {
+          break; // Exit retry loop
+        }
       }
-      
-      throw new Error(`Claude API returned ${response.status}: ${errorData.error?.message || errorData.message || errorText}`);
     }
+    
+    // All retries failed
+    throw lastError || new Error('All retry attempts failed');
 
-    const data = await response.json();
-
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-      body: JSON.stringify(data)
-    };
+    // This code is now inside the retry loop above
 
   } catch (error) {
     console.error('❌ Function error details:', {

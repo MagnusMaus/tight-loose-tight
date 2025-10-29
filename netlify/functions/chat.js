@@ -110,12 +110,13 @@ exports.handler = async (event, context) => {
         };
       }
 
-      const MAX_SYSTEM_LENGTH = 10000;
+      const MAX_SYSTEM_LENGTH = 20000; // Increased from 10000
+      console.log(`📏 System prompt length: ${system.length} chars`);
       if (system.length > MAX_SYSTEM_LENGTH) {
         return {
           statusCode: 400,
           body: JSON.stringify({ 
-            error: `System prompt too long. Maximum ${MAX_SYSTEM_LENGTH} characters.` 
+            error: `System prompt too long. Current: ${system.length}, Maximum: ${MAX_SYSTEM_LENGTH} characters.` 
           })
         };
       }
@@ -125,7 +126,16 @@ exports.handler = async (event, context) => {
     // ALL VALIDATION PASSED! Now call Claude API
     // ========================================
 
-    console.log(`✅ Validation passed. Processing ${messages.length} messages.`);
+    // Calculate total request size for debugging
+    const totalContentLength = messages.reduce((sum, msg) => sum + msg.content.length, 0);
+    const systemLength = system ? system.length : 0;
+    
+    console.log(`✅ Validation passed. Processing request:`, {
+      messageCount: messages.length,
+      totalContentLength,
+      systemLength,
+      totalRequestSize: totalContentLength + systemLength
+    });
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -143,9 +153,23 @@ exports.handler = async (event, context) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Claude API error:', errorData);
-      throw new Error(`Claude API returned ${response.status}`);
+      const errorText = await response.text();
+      console.error('❌ Claude API error details:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        body: errorText
+      });
+      
+      // Try to parse as JSON, fallback to text
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText };
+      }
+      
+      throw new Error(`Claude API returned ${response.status}: ${errorData.error?.message || errorData.message || errorText}`);
     }
 
     const data = await response.json();
@@ -160,15 +184,19 @@ exports.handler = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('❌ Function error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     
-    // Don't leak sensitive error details to client
+    // Always provide some error details for debugging
     return {
       statusCode: 500,
       body: JSON.stringify({ 
         error: 'Internal Server Error',
-        // Only show details in development
-        ...(process.env.NODE_ENV === 'development' && { debug: error.message })
+        message: error.message, // Always show error message
+        timestamp: new Date().toISOString()
       })
     };
   }

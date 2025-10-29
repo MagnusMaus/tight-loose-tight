@@ -47,6 +47,10 @@ const SavedJobsPanel = ({ savedJobs, showSavedJobs, onClose, onRemoveJob }) => {
                             key: 'meta',
                             className: 'saved-job-meta'
                         }, `${job.company} · ${job.location}`),
+                        React.createElement('p', {
+                            key: 'summary',
+                            className: 'saved-job-summary'
+                        }, Helpers.generateJobSummary(job)),
                         React.createElement('div', {
                             key: 'actions',
                             className: 'saved-job-actions'

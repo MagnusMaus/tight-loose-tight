@@ -231,6 +231,48 @@ In welcher beruflichen Situation befindest du dich gerade?`;
     // Deep clone object
     deepClone: (obj) => {
         return JSON.parse(JSON.stringify(obj));
+    },
+
+    // Generate concise job summary for saved jobs list
+    generateJobSummary: (job) => {
+        if (!job.description) return '';
+        
+        // Extract key sentences from Sam's description
+        const description = job.description;
+        
+        // Split into sentences and take first 2-3 meaningful ones
+        const sentences = description.split(/[.!]+/).filter(s => s.trim().length > 20);
+        
+        // Prioritize sentences that mention specific benefits or role details
+        const prioritySentences = sentences.filter(s => 
+            s.includes('perfekt') || s.includes('ideal') || s.includes('passt') || 
+            s.includes('Rolle') || s.includes('Position') || s.includes('bietet') ||
+            s.includes('Möglichkeit') || s.includes('nutzen') || s.includes('Balance')
+        );
+        
+        // Use priority sentences first, then regular ones
+        const selectedSentences = prioritySentences.length > 0 
+            ? prioritySentences.slice(0, 2)
+            : sentences.slice(0, 2);
+        
+        // Clean up and join
+        let summary = selectedSentences
+            .map(s => s.trim())
+            .filter(s => s.length > 0)
+            .join('. ');
+        
+        // Add period if not present
+        if (summary && !summary.endsWith('.')) {
+            summary += '.';
+        }
+        
+        // Limit length to ~150 characters for display
+        if (summary.length > 150) {
+            const lastSpace = summary.lastIndexOf(' ', 147);
+            summary = summary.substring(0, lastSpace) + '...';
+        }
+        
+        return summary;
     }
 };
 

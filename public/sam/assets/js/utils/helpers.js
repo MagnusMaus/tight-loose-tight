@@ -233,137 +233,221 @@ In welcher beruflichen Situation befindest du dich gerade?`;
         return JSON.parse(JSON.stringify(obj));
     },
 
-    // Generate structured job summary: What the job is + Why it fits
+    // Generate high-quality structured job summary: What the job is + Why it fits
     generateJobSummary: (job) => {
         if (!job.description) return '';
+        
+        // Helper function for proper German capitalization
+        const capitalizeGerman = (text) => {
+            if (!text) return '';
+            // Capitalize first letter and after periods
+            return text.replace(/(^|\. )([a-zäöü])/g, (match, prefix, letter) => {
+                return prefix + letter.toUpperCase();
+            });
+        };
+        
+        // Helper function to clean and validate extracted text
+        const cleanExtractedText = (text) => {
+            if (!text) return '';
+            
+            // Remove leading/trailing whitespace
+            text = text.trim();
+            
+            // Remove incomplete sentence artifacts
+            text = text.replace(/^(und|oder|aber|sowie|,|;|:)\s*/i, '');
+            text = text.replace(/\s*(und|oder|aber|sowie|,|;|:)$/i, '');
+            
+            // Remove incomplete article starts
+            text = text.replace(/^(die|das|den|eine|einer|einem|der)\s+/i, '');
+            
+            // Fix common grammar issues
+            text = text.replace(/\s+/g, ' ');
+            text = text.replace(/([a-z])([A-Z])/g, '$1 $2'); // Add space before capitals
+            
+            return text.trim();
+        };
+        
+        // Helper function to validate if text is a complete thought
+        const isCompleteThought = (text, minLength = 20) => {
+            if (!text || text.length < minLength) return false;
+            
+            // Check for incomplete patterns
+            const incompletePatterns = [
+                /^(und|oder|aber|sowie|,|;|:|&)\s*/i,
+                /\s*(und|oder|aber|sowie|,|;|:|&)$/i,
+                /^[a-z]/,  // Starts with lowercase (likely fragment)
+                /[,;:]$/,  // Ends with comma/semicolon
+                /\s+$/     // Ends with whitespace
+            ];
+            
+            return !incompletePatterns.some(pattern => pattern.test(text));
+        };
         
         const description = job.description;
         const pros = job.pros || [];
         const title = job.title || '';
         
-        // Step 1: Extract job requirements/activities
+        // Step 1: Extract job requirements/activities with robust patterns
         let jobWhat = '';
         
-        // Look for role descriptions with various patterns
+        // More precise role patterns that capture complete thoughts
         const rolePatterns = [
-            // "Diese Position...", "Die Rolle..."
-            /(?:Diese Position|Die Rolle|Diese Stelle)\s+(.+?)(?=\.|!|$|Dein|Mit deiner|Als erfahrener)/i,
-            // "Als [Title] bei [Company]..."
-            /Als\s+.+?\s+(?:bei|für)\s+.+?\s+(.+?)(?=\.|!|$|Dein|Mit deiner|Als erfahrener)/i,
-            // "Du wirst...", "Sie werden..."
-            /(?:Du wirst|Sie werden|Du übernimmst|Du leitest|Du managst)\s+(.+?)(?=\.|!|$|Dein|Mit deiner)/i,
-            // Job involves/requires patterns
-            /(?:umfasst|beinhaltet|erfordert)\s+(.+?)(?=\.|!|$|Dein|Mit deiner)/i
+            // Complete sentences about position/role
+            /(?:Diese Position|Die Rolle|Diese Stelle)\s+([^.!]+(?:und|sowie|,)[^.!]+)\./i,
+            /(?:Diese Position|Die Rolle|Diese Stelle)\s+([^.!]{30,120})\./i,
+            
+            // Job responsibilities
+            /(?:Du wirst|Sie werden|Du übernimmst|Du leitest)\s+([^.!]{25,100})\./i,
+            
+            // Job content/scope
+            /(?:umfasst|beinhaltet|erfordert|beinhaltet die)\s+([^.!]{25,120})\./i,
+            
+            // Als [role] bei [company] patterns
+            /Als\s+[^,]+\s+bei\s+[^,]+\s+([^.!]{25,100})\./i
         ];
         
         for (const pattern of rolePatterns) {
             const match = description.match(pattern);
-            if (match && match[1] && match[1].trim().length > 25) {
-                jobWhat = match[1].trim();
-                // Clean up common artifacts
-                jobWhat = jobWhat.replace(/^(die |das |den |eine |der )/i, '');
-                break;
+            if (match && match[1]) {
+                const candidate = cleanExtractedText(match[1]);
+                if (isCompleteThought(candidate, 25)) {
+                    jobWhat = candidate;
+                    break;
+                }
             }
         }
         
-        // Fallback: Use job title + generic activity
+        // Enhanced fallback based on job title with proper German
         if (!jobWhat && title) {
-            if (title.toLowerCase().includes('change')) {
-                jobWhat = 'Leitung von Transformationsprojekten und Change-Prozessen';
-            } else if (title.toLowerCase().includes('operations') || title.toLowerCase().includes('coo')) {
-                jobWhat = 'Operative Führung und Optimierung von Geschäftsprozessen';
-            } else if (title.toLowerCase().includes('consulting') || title.toLowerCase().includes('berater')) {
-                jobWhat = 'Beratung und Begleitung von strategischen Projekten';
-            } else if (title.toLowerCase().includes('manager') || title.toLowerCase().includes('leiter')) {
-                jobWhat = 'Führung von Teams und strategische Entwicklung';
+            const titleLower = title.toLowerCase();
+            if (titleLower.includes('change') || titleLower.includes('transformation')) {
+                jobWhat = 'die Leitung von Transformationsprojekten und Change-Prozessen';
+            } else if (titleLower.includes('operations') || titleLower.includes('coo') || titleLower.includes('betriebsleiter')) {
+                jobWhat = 'die operative Führung und Optimierung von Geschäftsprozessen';
+            } else if (titleLower.includes('consulting') || titleLower.includes('berater')) {
+                jobWhat = 'die Beratung und Begleitung von strategischen Projekten';
+            } else if (titleLower.includes('manager') || titleLower.includes('leiter') || titleLower.includes('lead')) {
+                jobWhat = 'die Führung von Teams und strategische Entwicklung';
+            } else if (titleLower.includes('director') || titleLower.includes('head')) {
+                jobWhat = 'die strategische Leitung und Entwicklung des Bereichs';
             } else {
-                jobWhat = 'Verantwortung für strategische und operative Aufgaben';
+                jobWhat = 'vielfältige strategische und operative Aufgaben';
             }
         }
         
-        // Step 2: Extract personal fit reasons
+        // Step 2: Extract fit reasons with complete context
         let whyFits = '';
         
+        // More sophisticated fit extraction
         const fitPatterns = [
-            // Direct fit statements
-            /(?:Mit deiner|Deine|Dein)\s+(.+?)\s+(?:bringst du|machst du|passt|ermöglicht|qualifiziert)(.+?)(?=\.|!|$)/i,
-            // Perfect/ideal statements
-            /(?:perfekt|ideal|genau richtig|maßgeschneidert)\s+(.+?)(?=\.|!|$)/i,
-            // "Als erfahrener..." statements
-            /Als erfahrener\s+(.+?)\s+(?:bringst du|hast du|passt|ermöglicht)(.+?)(?=\.|!|$)/i
+            // Complete fit statements
+            /(?:perfekt|ideal|genau richtig|maßgeschneidert)[^.!]*?(?:für|weil|da)\s+([^.!]{20,120})\./i,
+            
+            // Your background/experience statements
+            /(?:Mit deiner|Deine|Dein)\s+([^.!]{20,100})\s+(?:passt|ermöglicht|qualifiziert|bringst)([^.!]*)\./i,
+            
+            // Direct experience connections
+            /(?:Als erfahrener|Mit deiner Erfahrung)\s+([^.!]{20,120})\./i,
+            
+            // Capability utilization
+            /(?:kannst du|können Sie)\s+([^.!]{20,100})\s+(?:einsetzen|nutzen|verwenden)([^.!]*)\./i
         ];
         
         for (const pattern of fitPatterns) {
             const match = description.match(pattern);
-            if (match) {
-                if (match.length > 2 && match[2]) {
-                    // Two-part match
-                    whyFits = `${match[1]} ${match[2]}`.trim();
-                } else if (match[1]) {
-                    // Single part match
-                    whyFits = match[1].trim();
+            if (match && match[1]) {
+                let candidate = match[1].trim();
+                
+                // If there's a second part, combine intelligently
+                if (match[2] && match[2].trim()) {
+                    const part2 = match[2].trim();
+                    candidate = `${candidate} ${part2}`;
                 }
-                if (whyFits.length > 20) break;
+                
+                candidate = cleanExtractedText(candidate);
+                if (isCompleteThought(candidate, 20)) {
+                    whyFits = candidate;
+                    break;
+                }
             }
         }
         
-        // Fallback: Use pros or create from fit score
+        // Smart fallback using pros
         if (!whyFits && pros.length > 0) {
-            // Combine first 2 pros
-            whyFits = pros.slice(0, 2).join(', ');
-        }
-        
-        if (!whyFits) {
-            const skills = ['Change-Expertise', 'Agile-Erfahrung', 'Leadership-Skills', 'strategisches Denken'];
-            const randomSkill = skills[Math.floor(Math.random() * skills.length)];
-            whyFits = `nutzt deine ${randomSkill} und internationale Ambition`;
-        }
-        
-        // Step 3: Construct final summary (2-3 sentences)
-        let summary = '';
-        
-        // Sentence 1: What the job is
-        const sentence1 = `Diese Position umfasst ${jobWhat.toLowerCase()}.`;
-        
-        // Sentence 2: Why it fits
-        let sentence2 = '';
-        if (whyFits.length > 0) {
-            if (whyFits.toLowerCase().includes('deine') || whyFits.toLowerCase().includes('dein')) {
-                sentence2 = `${whyFits.charAt(0).toUpperCase()}${whyFits.slice(1)}.`;
-            } else {
-                sentence2 = `Das passt perfekt, da es ${whyFits.toLowerCase()}.`;
+            // Find the most relevant pro (longer = more detailed)
+            const relevantPro = pros
+                .filter(pro => pro.length > 15 && pro.length < 150)
+                .sort((a, b) => b.length - a.length)[0];
+            
+            if (relevantPro) {
+                whyFits = cleanExtractedText(relevantPro);
             }
         }
         
-        // Sentence 3: Fit score context (if high score)
+        // Final fallback with user-specific context
+        if (!whyFits) {
+            const experienceAreas = ['Change-Management', 'Agile Coaching', 'Transformationsprojekte', 'Leadership'];
+            const randomArea = experienceAreas[Math.floor(Math.random() * experienceAreas.length)];
+            whyFits = `deine Erfahrung in ${randomArea} optimal nutzt`;
+        }
+        
+        // Step 3: Construct grammatically correct sentences
+        
+        // Sentence 1: What the job is (proper German structure)
+        let sentence1 = '';
+        if (jobWhat) {
+            // Ensure proper article usage
+            if (jobWhat.startsWith('die ') || jobWhat.startsWith('das ') || jobWhat.startsWith('den ')) {
+                sentence1 = `Diese Position umfasst ${jobWhat}.`;
+            } else {
+                sentence1 = `Diese Position umfasst ${jobWhat}.`;
+            }
+        }
+        
+        // Sentence 2: Why it fits (proper German grammar)
+        let sentence2 = '';
+        if (whyFits) {
+            // Check if whyFits already contains subject
+            if (whyFits.toLowerCase().includes('deine ') || whyFits.toLowerCase().includes('dein ')) {
+                sentence2 = `Das passt ideal, weil es ${whyFits}.`;
+            } else if (whyFits.toLowerCase().includes('du ') || whyFits.toLowerCase().includes('sie ')) {
+                sentence2 = `Das passt perfekt, da ${whyFits}.`;
+            } else {
+                sentence2 = `Das passt optimal zu dir, da es ${whyFits}.`;
+            }
+        }
+        
+        // Sentence 3: Fit score (if significant)
         let sentence3 = '';
         if (job.fitScore && job.fitScore >= 80) {
-            sentence3 = ` Ausgezeichnete Passung mit ${job.fitScore}% Fit-Score.`;
+            sentence3 = `Ausgezeichnete Passung mit ${job.fitScore}% Fit-Score.`;
         } else if (job.fitScore && job.fitScore >= 75) {
-            sentence3 = ` Sehr gute Passung mit ${job.fitScore}% Fit-Score.`;
+            sentence3 = `Sehr gute Passung mit ${job.fitScore}% Fit-Score.`;
         }
         
-        // Combine sentences
-        summary = sentence1;
-        if (sentence2) {
-            summary += ` ${sentence2}`;
-        }
-        if (sentence3) {
-            summary += sentence3;
-        }
+        // Combine and finalize
+        let summary = [sentence1, sentence2, sentence3]
+            .filter(s => s.length > 0)
+            .join(' ');
         
-        // Clean up
+        // Final cleanup and validation
         summary = summary.trim();
-        summary = summary.replace(/\s+/g, ' '); // Remove extra spaces
-        summary = summary.replace(/\.\.+/g, '.'); // Remove multiple dots
+        summary = summary.replace(/\s+/g, ' ');          // Multiple spaces
+        summary = summary.replace(/\.\.+/g, '.');       // Multiple periods  
+        summary = summary.replace(/\s+\./g, '.');        // Space before period
+        summary = summary.replace(/([a-z])([A-Z])/g, '$1 $2'); // Space before capitals
         
-        // Length management - aim for 250-350 chars (2-3 sentences)
-        if (summary.length > 350) {
-            const lastPeriod = summary.lastIndexOf('.', 300);
-            if (lastPeriod > 200) {
-                summary = summary.substring(0, lastPeriod + 1);
+        // Apply proper German capitalization
+        summary = capitalizeGerman(summary);
+        
+        // Length management (250-400 chars for good readability)
+        if (summary.length > 400) {
+            const sentences = summary.split('. ');
+            if (sentences.length >= 2) {
+                summary = sentences.slice(0, 2).join('. ');
+                if (!summary.endsWith('.')) summary += '.';
             } else {
-                const lastSpace = summary.lastIndexOf(' ', 300);
+                const lastSpace = summary.lastIndexOf(' ', 380);
                 summary = summary.substring(0, lastSpace) + '.';
             }
         }

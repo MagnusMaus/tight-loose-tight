@@ -233,86 +233,139 @@ In welcher beruflichen Situation befindest du dich gerade?`;
         return JSON.parse(JSON.stringify(obj));
     },
 
-    // Generate concise job summary for saved jobs list
+    // Generate structured job summary: What the job is + Why it fits
     generateJobSummary: (job) => {
         if (!job.description) return '';
         
         const description = job.description;
         const pros = job.pros || [];
+        const title = job.title || '';
         
-        // Strategy 1: Extract role definition
-        let roleDescription = '';
+        // Step 1: Extract job requirements/activities
+        let jobWhat = '';
+        
+        // Look for role descriptions with various patterns
         const rolePatterns = [
-            /(?:Diese Position|Die Rolle|Als .+? bei|Diese Stelle|Der Job)\s+(.+?)[.!]/i,
-            /(?:Du wirst|Sie werden|Du übernimmst)\s+(.+?)[.!]/i,
-            /(?:verbindet|kombiniert|bietet)\s+(.+?)\s+(?:mit|und)/i
+            // "Diese Position...", "Die Rolle..."
+            /(?:Diese Position|Die Rolle|Diese Stelle)\s+(.+?)(?=\.|!|$|Dein|Mit deiner|Als erfahrener)/i,
+            // "Als [Title] bei [Company]..."
+            /Als\s+.+?\s+(?:bei|für)\s+.+?\s+(.+?)(?=\.|!|$|Dein|Mit deiner|Als erfahrener)/i,
+            // "Du wirst...", "Sie werden..."
+            /(?:Du wirst|Sie werden|Du übernimmst|Du leitest|Du managst)\s+(.+?)(?=\.|!|$|Dein|Mit deiner)/i,
+            // Job involves/requires patterns
+            /(?:umfasst|beinhaltet|erfordert)\s+(.+?)(?=\.|!|$|Dein|Mit deiner)/i
         ];
         
         for (const pattern of rolePatterns) {
             const match = description.match(pattern);
-            if (match && match[1] && match[1].length > 20 && match[1].length < 120) {
-                roleDescription = match[1].trim();
+            if (match && match[1] && match[1].trim().length > 25) {
+                jobWhat = match[1].trim();
+                // Clean up common artifacts
+                jobWhat = jobWhat.replace(/^(die |das |den |eine |der )/i, '');
                 break;
             }
         }
         
-        // Strategy 2: Extract key benefit/fit reason
-        let benefitDescription = '';
-        const benefitPatterns = [
-            /(?:perfekt|ideal|genau richtig|maßgeschneidert)\s+(.{20,100}?)[.!]/i,
-            /(?:Hier kannst du|Du kannst|Sie können)\s+(.{20,80}?)[.!]/i,
-            /(?:nutzen|einsetzen|ausschöpfen)\s+(.{15,80}?)[.!]/i
+        // Fallback: Use job title + generic activity
+        if (!jobWhat && title) {
+            if (title.toLowerCase().includes('change')) {
+                jobWhat = 'Leitung von Transformationsprojekten und Change-Prozessen';
+            } else if (title.toLowerCase().includes('operations') || title.toLowerCase().includes('coo')) {
+                jobWhat = 'Operative Führung und Optimierung von Geschäftsprozessen';
+            } else if (title.toLowerCase().includes('consulting') || title.toLowerCase().includes('berater')) {
+                jobWhat = 'Beratung und Begleitung von strategischen Projekten';
+            } else if (title.toLowerCase().includes('manager') || title.toLowerCase().includes('leiter')) {
+                jobWhat = 'Führung von Teams und strategische Entwicklung';
+            } else {
+                jobWhat = 'Verantwortung für strategische und operative Aufgaben';
+            }
+        }
+        
+        // Step 2: Extract personal fit reasons
+        let whyFits = '';
+        
+        const fitPatterns = [
+            // Direct fit statements
+            /(?:Mit deiner|Deine|Dein)\s+(.+?)\s+(?:bringst du|machst du|passt|ermöglicht|qualifiziert)(.+?)(?=\.|!|$)/i,
+            // Perfect/ideal statements
+            /(?:perfekt|ideal|genau richtig|maßgeschneidert)\s+(.+?)(?=\.|!|$)/i,
+            // "Als erfahrener..." statements
+            /Als erfahrener\s+(.+?)\s+(?:bringst du|hast du|passt|ermöglicht)(.+?)(?=\.|!|$)/i
         ];
         
-        for (const pattern of benefitPatterns) {
+        for (const pattern of fitPatterns) {
             const match = description.match(pattern);
-            if (match && match[1] && match[1].length > 15) {
-                benefitDescription = match[1].trim();
-                break;
+            if (match) {
+                if (match.length > 2 && match[2]) {
+                    // Two-part match
+                    whyFits = `${match[1]} ${match[2]}`.trim();
+                } else if (match[1]) {
+                    // Single part match
+                    whyFits = match[1].trim();
+                }
+                if (whyFits.length > 20) break;
             }
         }
         
-        // Strategy 3: Use pros as fallback
-        if (!roleDescription && !benefitDescription && pros.length > 0) {
-            benefitDescription = pros[0].length < 100 ? pros[0] : pros[0].substring(0, 80) + '...';
+        // Fallback: Use pros or create from fit score
+        if (!whyFits && pros.length > 0) {
+            // Combine first 2 pros
+            whyFits = pros.slice(0, 2).join(', ');
         }
         
-        // Strategy 4: Create manual summary based on job title and fit score
-        if (!roleDescription && !benefitDescription) {
-            if (job.fitScore >= 85) {
-                benefitDescription = `Ausgezeichnete Passung für dein Profil (${job.fitScore}% Fit)`;
-            } else if (job.fitScore >= 75) {
-                benefitDescription = `Sehr gute Passung für deine Ziele (${job.fitScore}% Fit)`;
-            } else {
-                benefitDescription = `Interessante Möglichkeit (${job.fitScore}% Fit)`;
-            }
+        if (!whyFits) {
+            const skills = ['Change-Expertise', 'Agile-Erfahrung', 'Leadership-Skills', 'strategisches Denken'];
+            const randomSkill = skills[Math.floor(Math.random() * skills.length)];
+            whyFits = `nutzt deine ${randomSkill} und internationale Ambition`;
         }
         
-        // Combine role and benefit into concise summary
+        // Step 3: Construct final summary (2-3 sentences)
         let summary = '';
-        if (roleDescription && benefitDescription) {
-            // Both available - pick shorter one or combine smartly
-            if (roleDescription.length + benefitDescription.length < 140) {
-                summary = `${roleDescription}. ${benefitDescription}.`;
+        
+        // Sentence 1: What the job is
+        const sentence1 = `Diese Position umfasst ${jobWhat.toLowerCase()}.`;
+        
+        // Sentence 2: Why it fits
+        let sentence2 = '';
+        if (whyFits.length > 0) {
+            if (whyFits.toLowerCase().includes('deine') || whyFits.toLowerCase().includes('dein')) {
+                sentence2 = `${whyFits.charAt(0).toUpperCase()}${whyFits.slice(1)}.`;
             } else {
-                summary = roleDescription.length < benefitDescription.length ? roleDescription : benefitDescription;
+                sentence2 = `Das passt perfekt, da es ${whyFits.toLowerCase()}.`;
             }
-        } else if (roleDescription) {
-            summary = roleDescription;
-        } else if (benefitDescription) {
-            summary = benefitDescription;
         }
         
-        // Clean up and ensure proper ending
+        // Sentence 3: Fit score context (if high score)
+        let sentence3 = '';
+        if (job.fitScore && job.fitScore >= 80) {
+            sentence3 = ` Ausgezeichnete Passung mit ${job.fitScore}% Fit-Score.`;
+        } else if (job.fitScore && job.fitScore >= 75) {
+            sentence3 = ` Sehr gute Passung mit ${job.fitScore}% Fit-Score.`;
+        }
+        
+        // Combine sentences
+        summary = sentence1;
+        if (sentence2) {
+            summary += ` ${sentence2}`;
+        }
+        if (sentence3) {
+            summary += sentence3;
+        }
+        
+        // Clean up
         summary = summary.trim();
-        if (summary && !summary.endsWith('.') && !summary.endsWith('!')  && !summary.endsWith('?')) {
-            summary += '.';
-        }
+        summary = summary.replace(/\s+/g, ' '); // Remove extra spaces
+        summary = summary.replace(/\.\.+/g, '.'); // Remove multiple dots
         
-        // Final length check - aim for 2-3 lines max
-        if (summary.length > 180) {
-            const lastSpace = summary.lastIndexOf(' ', 177);
-            summary = summary.substring(0, lastSpace) + '...';
+        // Length management - aim for 250-350 chars (2-3 sentences)
+        if (summary.length > 350) {
+            const lastPeriod = summary.lastIndexOf('.', 300);
+            if (lastPeriod > 200) {
+                summary = summary.substring(0, lastPeriod + 1);
+            } else {
+                const lastSpace = summary.lastIndexOf(' ', 300);
+                summary = summary.substring(0, lastSpace) + '.';
+            }
         }
         
         return summary;

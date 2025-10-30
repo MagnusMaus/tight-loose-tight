@@ -237,38 +237,81 @@ In welcher beruflichen Situation befindest du dich gerade?`;
     generateJobSummary: (job) => {
         if (!job.description) return '';
         
-        // Extract key sentences from Sam's description
         const description = job.description;
+        const pros = job.pros || [];
         
-        // Split into sentences and take first 2-3 meaningful ones
-        const sentences = description.split(/[.!]+/).filter(s => s.trim().length > 20);
+        // Strategy 1: Extract role definition
+        let roleDescription = '';
+        const rolePatterns = [
+            /(?:Diese Position|Die Rolle|Als .+? bei|Diese Stelle|Der Job)\s+(.+?)[.!]/i,
+            /(?:Du wirst|Sie werden|Du übernimmst)\s+(.+?)[.!]/i,
+            /(?:verbindet|kombiniert|bietet)\s+(.+?)\s+(?:mit|und)/i
+        ];
         
-        // Prioritize sentences that mention specific benefits or role details
-        const prioritySentences = sentences.filter(s => 
-            s.includes('perfekt') || s.includes('ideal') || s.includes('passt') || 
-            s.includes('Rolle') || s.includes('Position') || s.includes('bietet') ||
-            s.includes('Möglichkeit') || s.includes('nutzen') || s.includes('Balance')
-        );
+        for (const pattern of rolePatterns) {
+            const match = description.match(pattern);
+            if (match && match[1] && match[1].length > 20 && match[1].length < 120) {
+                roleDescription = match[1].trim();
+                break;
+            }
+        }
         
-        // Use priority sentences first, then regular ones
-        const selectedSentences = prioritySentences.length > 0 
-            ? prioritySentences.slice(0, 2)
-            : sentences.slice(0, 2);
+        // Strategy 2: Extract key benefit/fit reason
+        let benefitDescription = '';
+        const benefitPatterns = [
+            /(?:perfekt|ideal|genau richtig|maßgeschneidert)\s+(.{20,100}?)[.!]/i,
+            /(?:Hier kannst du|Du kannst|Sie können)\s+(.{20,80}?)[.!]/i,
+            /(?:nutzen|einsetzen|ausschöpfen)\s+(.{15,80}?)[.!]/i
+        ];
         
-        // Clean up and join
-        let summary = selectedSentences
-            .map(s => s.trim())
-            .filter(s => s.length > 0)
-            .join('. ');
+        for (const pattern of benefitPatterns) {
+            const match = description.match(pattern);
+            if (match && match[1] && match[1].length > 15) {
+                benefitDescription = match[1].trim();
+                break;
+            }
+        }
         
-        // Add period if not present
-        if (summary && !summary.endsWith('.')) {
+        // Strategy 3: Use pros as fallback
+        if (!roleDescription && !benefitDescription && pros.length > 0) {
+            benefitDescription = pros[0].length < 100 ? pros[0] : pros[0].substring(0, 80) + '...';
+        }
+        
+        // Strategy 4: Create manual summary based on job title and fit score
+        if (!roleDescription && !benefitDescription) {
+            if (job.fitScore >= 85) {
+                benefitDescription = `Ausgezeichnete Passung für dein Profil (${job.fitScore}% Fit)`;
+            } else if (job.fitScore >= 75) {
+                benefitDescription = `Sehr gute Passung für deine Ziele (${job.fitScore}% Fit)`;
+            } else {
+                benefitDescription = `Interessante Möglichkeit (${job.fitScore}% Fit)`;
+            }
+        }
+        
+        // Combine role and benefit into concise summary
+        let summary = '';
+        if (roleDescription && benefitDescription) {
+            // Both available - pick shorter one or combine smartly
+            if (roleDescription.length + benefitDescription.length < 140) {
+                summary = `${roleDescription}. ${benefitDescription}.`;
+            } else {
+                summary = roleDescription.length < benefitDescription.length ? roleDescription : benefitDescription;
+            }
+        } else if (roleDescription) {
+            summary = roleDescription;
+        } else if (benefitDescription) {
+            summary = benefitDescription;
+        }
+        
+        // Clean up and ensure proper ending
+        summary = summary.trim();
+        if (summary && !summary.endsWith('.') && !summary.endsWith('!')  && !summary.endsWith('?')) {
             summary += '.';
         }
         
-        // Limit length to ~150 characters for display
-        if (summary.length > 150) {
-            const lastSpace = summary.lastIndexOf(' ', 147);
+        // Final length check - aim for 2-3 lines max
+        if (summary.length > 180) {
+            const lastSpace = summary.lastIndexOf(' ', 177);
             summary = summary.substring(0, lastSpace) + '...';
         }
         

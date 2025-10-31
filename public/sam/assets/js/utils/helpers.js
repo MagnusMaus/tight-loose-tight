@@ -233,222 +233,144 @@ In welcher beruflichen Situation befindest du dich gerade?`;
         return JSON.parse(JSON.stringify(obj));
     },
 
-    // Generate high-quality structured job summary: What the job is + Why it fits
+    // Generate high-quality job summary using template approach
     generateJobSummary: (job) => {
-        if (!job.description) return '';
+        if (!job.title && !job.company) return '';
         
-        // Helper function for proper German capitalization
-        const capitalizeGerman = (text) => {
-            if (!text) return '';
-            // Capitalize first letter and after periods
-            return text.replace(/(^|\. )([a-zäöü])/g, (match, prefix, letter) => {
-                return prefix + letter.toUpperCase();
-            });
-        };
-        
-        // Helper function to clean and validate extracted text
-        const cleanExtractedText = (text) => {
-            if (!text) return '';
-            
-            // Remove leading/trailing whitespace
-            text = text.trim();
-            
-            // Remove incomplete sentence artifacts
-            text = text.replace(/^(und|oder|aber|sowie|,|;|:)\s*/i, '');
-            text = text.replace(/\s*(und|oder|aber|sowie|,|;|:)$/i, '');
-            
-            // Remove incomplete article starts
-            text = text.replace(/^(die|das|den|eine|einer|einem|der)\s+/i, '');
-            
-            // Fix common grammar issues
-            text = text.replace(/\s+/g, ' ');
-            text = text.replace(/([a-z])([A-Z])/g, '$1 $2'); // Add space before capitals
-            
-            return text.trim();
-        };
-        
-        // Helper function to validate if text is a complete thought
-        const isCompleteThought = (text, minLength = 20) => {
-            if (!text || text.length < minLength) return false;
-            
-            // Check for incomplete patterns
-            const incompletePatterns = [
-                /^(und|oder|aber|sowie|,|;|:|&)\s*/i,
-                /\s*(und|oder|aber|sowie|,|;|:|&)$/i,
-                /^[a-z]/,  // Starts with lowercase (likely fragment)
-                /[,;:]$/,  // Ends with comma/semicolon
-                /\s+$/     // Ends with whitespace
-            ];
-            
-            return !incompletePatterns.some(pattern => pattern.test(text));
-        };
-        
-        const description = job.description;
-        const pros = job.pros || [];
         const title = job.title || '';
+        const company = job.company || '';
+        const pros = job.pros || [];
+        const fitScore = job.fitScore || 0;
         
-        // Step 1: Extract job requirements/activities with robust patterns
-        let jobWhat = '';
-        
-        // More precise role patterns that capture complete thoughts
-        const rolePatterns = [
-            // Complete sentences about position/role
-            /(?:Diese Position|Die Rolle|Diese Stelle)\s+([^.!]+(?:und|sowie|,)[^.!]+)\./i,
-            /(?:Diese Position|Die Rolle|Diese Stelle)\s+([^.!]{30,120})\./i,
-            
-            // Job responsibilities
-            /(?:Du wirst|Sie werden|Du übernimmst|Du leitest)\s+([^.!]{25,100})\./i,
-            
-            // Job content/scope
-            /(?:umfasst|beinhaltet|erfordert|beinhaltet die)\s+([^.!]{25,120})\./i,
-            
-            // Als [role] bei [company] patterns
-            /Als\s+[^,]+\s+bei\s+[^,]+\s+([^.!]{25,100})\./i
-        ];
-        
-        for (const pattern of rolePatterns) {
-            const match = description.match(pattern);
-            if (match && match[1]) {
-                const candidate = cleanExtractedText(match[1]);
-                if (isCompleteThought(candidate, 25)) {
-                    jobWhat = candidate;
-                    break;
-                }
-            }
-        }
-        
-        // Enhanced fallback based on job title with proper German
-        if (!jobWhat && title) {
+        // Step 1: Classify job type and determine role description
+        const classifyJobType = (title) => {
             const titleLower = title.toLowerCase();
+            
             if (titleLower.includes('change') || titleLower.includes('transformation')) {
-                jobWhat = 'die Leitung von Transformationsprojekten und Change-Prozessen';
-            } else if (titleLower.includes('operations') || titleLower.includes('coo') || titleLower.includes('betriebsleiter')) {
-                jobWhat = 'die operative Führung und Optimierung von Geschäftsprozessen';
-            } else if (titleLower.includes('consulting') || titleLower.includes('berater')) {
-                jobWhat = 'die Beratung und Begleitung von strategischen Projekten';
-            } else if (titleLower.includes('manager') || titleLower.includes('leiter') || titleLower.includes('lead')) {
-                jobWhat = 'die Führung von Teams und strategische Entwicklung';
-            } else if (titleLower.includes('director') || titleLower.includes('head')) {
-                jobWhat = 'die strategische Leitung und Entwicklung des Bereichs';
-            } else {
-                jobWhat = 'vielfältige strategische und operative Aufgaben';
+                return {
+                    activity: 'Change-Management und Transformationsprojekte',
+                    verb: 'leitest'
+                };
             }
-        }
-        
-        // Step 2: Extract fit reasons with complete context
-        let whyFits = '';
-        
-        // More sophisticated fit extraction
-        const fitPatterns = [
-            // Complete fit statements
-            /(?:perfekt|ideal|genau richtig|maßgeschneidert)[^.!]*?(?:für|weil|da)\s+([^.!]{20,120})\./i,
+            if (titleLower.includes('operations') || titleLower.includes('coo') || titleLower.includes('betriebsleiter')) {
+                return {
+                    activity: 'operative Prozesse und Geschäftsoptimierung',
+                    verb: 'verantwortest'
+                };
+            }
+            if (titleLower.includes('consulting') || titleLower.includes('berater')) {
+                return {
+                    activity: 'strategische Beratung und Projektbegleitung',
+                    verb: 'führst durch'
+                };
+            }
+            if (titleLower.includes('manager') || titleLower.includes('lead')) {
+                return {
+                    activity: 'Teamführung und strategische Entwicklung',
+                    verb: 'übernimmst'
+                };
+            }
+            if (titleLower.includes('director') || titleLower.includes('head')) {
+                return {
+                    activity: 'strategische Bereichsleitung',
+                    verb: 'verantwortest'
+                };
+            }
+            if (titleLower.includes('senior') || titleLower.includes('lead')) {
+                return {
+                    activity: 'komplexe Fachaufgaben und Projektleitung',
+                    verb: 'übernimmst'
+                };
+            }
             
-            // Your background/experience statements
-            /(?:Mit deiner|Deine|Dein)\s+([^.!]{20,100})\s+(?:passt|ermöglicht|qualifiziert|bringst)([^.!]*)\./i,
+            // Generic fallback
+            return {
+                activity: 'strategische und operative Aufgaben',
+                verb: 'übernimmst'
+            };
+        };
+        
+        // Step 2: Extract fit reasons from pros (structured data)
+        const getFitReason = (pros) => {
+            if (!pros || pros.length === 0) {
+                return 'deine vielseitige Erfahrung in Change-Management und Leadership optimal nutzt';
+            }
             
-            // Direct experience connections
-            /(?:Als erfahrener|Mit deiner Erfahrung)\s+([^.!]{20,120})\./i,
+            // Look for the most descriptive pro
+            const meaningfulPros = pros.filter(pro => 
+                pro.length > 10 && 
+                pro.length < 120 &&
+                !pro.toLowerCase().includes('fit') &&
+                !pro.toLowerCase().includes('score')
+            );
             
-            // Capability utilization
-            /(?:kannst du|können Sie)\s+([^.!]{20,100})\s+(?:einsetzen|nutzen|verwenden)([^.!]*)\./i
-        ];
-        
-        for (const pattern of fitPatterns) {
-            const match = description.match(pattern);
-            if (match && match[1]) {
-                let candidate = match[1].trim();
-                
-                // If there's a second part, combine intelligently
-                if (match[2] && match[2].trim()) {
-                    const part2 = match[2].trim();
-                    candidate = `${candidate} ${part2}`;
-                }
-                
-                candidate = cleanExtractedText(candidate);
-                if (isCompleteThought(candidate, 20)) {
-                    whyFits = candidate;
-                    break;
-                }
+            if (meaningfulPros.length === 0) {
+                return 'deine Expertise in Transformation und strategischer Führung ideal eingesetzt wird';
             }
-        }
-        
-        // Smart fallback using pros
-        if (!whyFits && pros.length > 0) {
-            // Find the most relevant pro (longer = more detailed)
-            const relevantPro = pros
-                .filter(pro => pro.length > 15 && pro.length < 150)
-                .sort((a, b) => b.length - a.length)[0];
             
-            if (relevantPro) {
-                whyFits = cleanExtractedText(relevantPro);
+            // Take the first meaningful pro and make it grammatically correct
+            let reason = meaningfulPros[0].trim();
+            
+            // Clean up and make it fit grammatically
+            reason = reason.replace(/^[\-\*\+]\s*/, ''); // Remove bullet points
+            reason = reason.replace(/^(deine|dein|du|sie)\s+/i, ''); // Remove personal pronouns at start
+            
+            // Make first letter lowercase for proper grammar in sentence
+            if (reason.length > 0) {
+                reason = reason.charAt(0).toLowerCase() + reason.slice(1);
             }
-        }
-        
-        // Final fallback with user-specific context
-        if (!whyFits) {
-            const experienceAreas = ['Change-Management', 'Agile Coaching', 'Transformationsprojekte', 'Leadership'];
-            const randomArea = experienceAreas[Math.floor(Math.random() * experienceAreas.length)];
-            whyFits = `deine Erfahrung in ${randomArea} optimal nutzt`;
-        }
-        
-        // Step 3: Construct grammatically correct sentences
-        
-        // Sentence 1: What the job is (proper German structure)
-        let sentence1 = '';
-        if (jobWhat) {
-            // Ensure proper article usage
-            if (jobWhat.startsWith('die ') || jobWhat.startsWith('das ') || jobWhat.startsWith('den ')) {
-                sentence1 = `Diese Position umfasst ${jobWhat}.`;
-            } else {
-                sentence1 = `Diese Position umfasst ${jobWhat}.`;
+            
+            // Ensure it makes sense as "da es [reason]"
+            if (!reason.includes('deine') && !reason.includes('dein')) {
+                reason = `deine ${reason}`;
             }
+            
+            // Add proper ending if missing
+            if (!reason.includes('nutzt') && !reason.includes('passt') && !reason.includes('ermöglicht')) {
+                reason += ' optimal nutzt';
+            }
+            
+            return reason;
+        };
+        
+        // Step 3: Build summary using templates
+        const jobType = classifyJobType(title);
+        const fitReason = getFitReason(pros);
+        
+        // Template construction with proper German grammar
+        let summary = '';
+        
+        // Sentence 1: Role and activity
+        if (company) {
+            summary = `Als ${title} bei ${company} ${jobType.verb} du ${jobType.activity}.`;
+        } else {
+            summary = `In dieser Position als ${title} ${jobType.verb} du ${jobType.activity}.`;
         }
         
-        // Sentence 2: Why it fits (proper German grammar)
-        let sentence2 = '';
-        if (whyFits) {
-            // Check if whyFits already contains subject
-            if (whyFits.toLowerCase().includes('deine ') || whyFits.toLowerCase().includes('dein ')) {
-                sentence2 = `Das passt ideal, weil es ${whyFits}.`;
-            } else if (whyFits.toLowerCase().includes('du ') || whyFits.toLowerCase().includes('sie ')) {
-                sentence2 = `Das passt perfekt, da ${whyFits}.`;
-            } else {
-                sentence2 = `Das passt optimal zu dir, da es ${whyFits}.`;
-            }
-        }
+        // Sentence 2: Fit reason
+        summary += ` Das passt hervorragend, da es ${fitReason}.`;
         
         // Sentence 3: Fit score (if significant)
-        let sentence3 = '';
-        if (job.fitScore && job.fitScore >= 80) {
-            sentence3 = `Ausgezeichnete Passung mit ${job.fitScore}% Fit-Score.`;
-        } else if (job.fitScore && job.fitScore >= 75) {
-            sentence3 = `Sehr gute Passung mit ${job.fitScore}% Fit-Score.`;
+        if (fitScore >= 80) {
+            summary += ` Ausgezeichnete Passung mit ${fitScore}% Fit-Score.`;
+        } else if (fitScore >= 75) {
+            summary += ` Sehr gute Passung mit ${fitScore}% Fit-Score.`;
         }
         
-        // Combine and finalize
-        let summary = [sentence1, sentence2, sentence3]
-            .filter(s => s.length > 0)
-            .join(' ');
-        
-        // Final cleanup and validation
+        // Final cleanup
         summary = summary.trim();
-        summary = summary.replace(/\s+/g, ' ');          // Multiple spaces
-        summary = summary.replace(/\.\.+/g, '.');       // Multiple periods  
-        summary = summary.replace(/\s+\./g, '.');        // Space before period
-        summary = summary.replace(/([a-z])([A-Z])/g, '$1 $2'); // Space before capitals
+        summary = summary.replace(/\s+/g, ' '); // Remove extra spaces
+        summary = summary.replace(/\.\s*\./g, '.'); // Remove double periods
         
-        // Apply proper German capitalization
-        summary = capitalizeGerman(summary);
+        // Ensure proper capitalization
+        summary = summary.charAt(0).toUpperCase() + summary.slice(1);
         
-        // Length management (250-400 chars for good readability)
-        if (summary.length > 400) {
+        // Length management - keep it readable (300-450 chars)
+        if (summary.length > 450) {
             const sentences = summary.split('. ');
             if (sentences.length >= 2) {
                 summary = sentences.slice(0, 2).join('. ');
                 if (!summary.endsWith('.')) summary += '.';
-            } else {
-                const lastSpace = summary.lastIndexOf(' ', 380);
-                summary = summary.substring(0, lastSpace) + '.';
             }
         }
         

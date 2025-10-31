@@ -301,14 +301,22 @@
 /* Mobile responsive for job cards */
 @media (max-width: 768px) {
     .job-cards-container {
+        display: flex;
+        flex-direction: row;
         gap: 16px;
         margin-top: 16px;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        padding: 0 20px;
+        -webkit-overflow-scrolling: touch;
     }
     
     .job-card {
-        padding: 20px;
-        max-width: 95%;
-        margin: 0 auto;
+        flex: 0 0 85%;
+        max-width: 85%;
+        margin: 0;
+        scroll-snap-align: center;
+        padding: 16px;
     }
     
     .job-title {
@@ -321,29 +329,45 @@
     }
     
     .job-description {
-        font-size: 14px;
+        font-size: 13px;
+        line-height: 1.4;
+        max-height: 60px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
     }
     
     .job-pros-title,
     .job-cons-title {
-        font-size: 13px;
+        font-size: 12px;
+        margin-bottom: 4px;
     }
     
     .job-pros-list,
     .job-cons-list {
-        font-size: 13px;
+        font-size: 12px;
+        max-height: 40px;
+        overflow: hidden;
+    }
+    
+    .job-pros-list li,
+    .job-cons-list li {
+        margin-bottom: 2px;
     }
     
     .job-actions {
-        gap: 8px;
-        flex-direction: column;
+        gap: 6px;
+        flex-direction: row;
+        margin-top: 12px;
     }
     
     .job-action-button {
         min-width: auto;
-        padding: 10px 16px;
-        font-size: 14px;
-        flex: none;
+        padding: 8px 12px;
+        font-size: 13px;
+        flex: 1;
     }
     
     /* Saved Jobs Panel */

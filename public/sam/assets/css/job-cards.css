@@ -297,3 +297,100 @@
     justify-content: center;
     gap: 6px;
 }
+
+/* Mobile responsive for job cards */
+@media (max-width: 768px) {
+    .job-cards-container {
+        gap: 16px;
+        margin-top: 16px;
+    }
+    
+    .job-card {
+        padding: 20px;
+        max-width: 95%;
+        margin: 0 auto;
+    }
+    
+    .job-title {
+        font-size: 18px;
+    }
+    
+    .job-meta {
+        font-size: 13px;
+        gap: 12px;
+    }
+    
+    .job-description {
+        font-size: 14px;
+    }
+    
+    .job-pros-title,
+    .job-cons-title {
+        font-size: 13px;
+    }
+    
+    .job-pros-list,
+    .job-cons-list {
+        font-size: 13px;
+    }
+    
+    .job-actions {
+        gap: 8px;
+        flex-direction: column;
+    }
+    
+    .job-action-button {
+        min-width: auto;
+        padding: 10px 16px;
+        font-size: 14px;
+        flex: none;
+    }
+    
+    /* Saved Jobs Panel */
+    .saved-jobs-panel {
+        width: 100%;
+        left: 0;
+        right: auto;
+    }
+    
+    .saved-jobs-panel-header {
+        padding: 16px 20px;
+    }
+    
+    .saved-jobs-panel-title {
+        font-size: 18px;
+    }
+    
+    .saved-jobs-panel-content {
+        padding: 16px 20px;
+    }
+    
+    .saved-job-item {
+        padding: 14px;
+    }
+    
+    .saved-job-title {
+        font-size: 15px;
+    }
+    
+    .saved-job-meta {
+        font-size: 13px;
+    }
+    
+    .saved-job-summary {
+        font-size: 12px;
+        padding: 6px 8px;
+    }
+    
+    .saved-job-actions {
+        gap: 6px;
+        flex-direction: column;
+    }
+    
+    .saved-job-apply,
+    .saved-job-remove {
+        padding: 6px 10px;
+        font-size: 12px;
+        flex: none;
+    }
+}

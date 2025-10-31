@@ -105,7 +105,7 @@ const ApiService = {
     generateJobSummary: async (jobCard) => {
         console.log('📝 Generating summary for saved job:', jobCard.title);
         
-        const summaryPrompt = `Erstelle eine präzise 2-Satz Zusammenfassung für die Saved Jobs Liste:
+        const summaryPrompt = `Erstelle eine informative 2-3 Satz Zusammenfassung für die Saved Jobs Liste:
 
 Job: ${jobCard.title} bei ${jobCard.company}
 Ort: ${jobCard.location || 'Nicht angegeben'}
@@ -113,18 +113,19 @@ Beschreibung: ${jobCard.description}
 Vorteile: ${(jobCard.pros || []).join(', ')}
 
 Anforderungen:
-- Genau 2 vollständige deutsche Sätze
-- Satz 1: Kernaufgabe/Herausforderung der Position
-- Satz 2: Warum es zum Profil passt  
+- 2-3 vollständige deutsche Sätze (maximal 300 Zeichen)
+- Satz 1: Konkrete Kernaufgaben und Verantwortlichkeiten
+- Satz 2: Spezifische Fit-Gründe (warum passt es genau?)
+- Satz 3: Optional - besondere Chancen/Highlights
 - Keine Wiederholung von Titel/Firma (stehen separat)
+- Vermeide generische Phrasen wie "passt gut zu deinem Profil"
+- Sei spezifisch und informativ
 - Perfekte deutsche Grammatik
-- Abgeschlossene Gedanken
-- Maximal 200 Zeichen total
 
-Format: [Satz 1]. [Satz 2].`;
+Format: [Konkreter Satz 1]. [Spezifischer Fit-Grund]. [Optional: Highlight].`;
         
         try {
-            const data = await this.chatWithSam(
+            const data = await ApiService.chatWithSam(
                 [{ role: 'user', content: summaryPrompt }],
                 'Du bist ein Experte für präzise deutsche Textzusammenfassungen. Erstelle professionelle, grammatisch korrekte Zusammenfassungen für Job-Listen.',
                 { timeout: 15000 } // Shorter timeout for summaries
@@ -136,9 +137,35 @@ Format: [Satz 1]. [Satz 2].`;
             
         } catch (error) {
             console.error('❌ Error generating job summary:', error);
-            // Fallback to basic summary if API fails
-            const fallback = `${jobCard.title.includes('Change') ? 'Change-Management' : jobCard.title.includes('Operations') ? 'Operations-Management' : 'Strategische'} Position mit hoher Verantwortung. Passt gut zu deinem Profil.`;
-            console.log('⚠️ Using fallback summary');
+            
+            // Enhanced fallback based on job data
+            let fallback = '';
+            const title = jobCard.title.toLowerCase();
+            const company = jobCard.company || '';
+            const pros = jobCard.pros || [];
+            
+            // Create meaningful fallback based on available data
+            if (title.includes('change') || title.includes('transformation')) {
+                fallback = `Führung von Change-Prozessen und Transformationsprojekten.`;
+            } else if (title.includes('operations') || title.includes('coo')) {
+                fallback = `Operative Leitung und Optimierung von Geschäftsprozessen.`;
+            } else if (title.includes('manager') || title.includes('lead')) {
+                fallback = `Management-Rolle mit Team- und Prozessverantwortung.`;
+            } else if (title.includes('consultant') || title.includes('berater')) {
+                fallback = `Strategische Beratung und Projektbegleitung.`;
+            } else {
+                fallback = `Verantwortungsvolle Position mit strategischem Fokus.`;
+            }
+            
+            // Add fit reason from pros if available
+            if (pros.length > 0) {
+                const shortPro = pros[0].length > 60 ? pros[0].substring(0, 60) + '...' : pros[0];
+                fallback += ` ${shortPro}`;
+            } else {
+                fallback += ` Nutzt deine Expertise in Leadership und strategischer Entwicklung.`;
+            }
+            
+            console.log('⚠️ Using enhanced fallback summary');
             return fallback;
         }
     }

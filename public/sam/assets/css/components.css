@@ -108,6 +108,17 @@
     padding: 60px 40px 80px;
 }
 
+.chat-section-title {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 40px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
 .chat-container {
     max-width: 1200px;
     margin: 0 auto;
@@ -405,6 +416,12 @@
     /* Chat Section - Reduce padding */
     .chat-section {
         padding: 20px 20px 40px;
+    }
+    
+    .chat-section-title {
+        font-size: 22px;
+        margin-bottom: 20px;
+        padding: 0 10px;
     }
     
     .messages-area {

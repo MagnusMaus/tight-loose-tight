@@ -21,6 +21,12 @@ const ChatInterface = ({
     return React.createElement('section', {
         className: 'chat-section'
     }, [
+        // Chat Section Title
+        React.createElement('h2', {
+            key: 'chat-title',
+            className: 'chat-section-title'
+        }, 'Chatte mit Sam, um den Job zu finden, der genau zu dir passt:'),
+        
         React.createElement('div', {
             key: 'container',
             className: 'chat-container'

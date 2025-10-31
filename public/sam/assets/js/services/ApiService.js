@@ -99,6 +99,48 @@ const ApiService = {
             console.error('❌ Error in parseCV:', error);
             throw error;
         }
+    },
+
+    // Generate job summary for saved jobs (separate from main flow)
+    generateJobSummary: async (jobCard) => {
+        console.log('📝 Generating summary for saved job:', jobCard.title);
+        
+        const summaryPrompt = `Erstelle eine präzise 2-Satz Zusammenfassung für die Saved Jobs Liste:
+
+Job: ${jobCard.title} bei ${jobCard.company}
+Ort: ${jobCard.location || 'Nicht angegeben'}
+Beschreibung: ${jobCard.description}
+Vorteile: ${(jobCard.pros || []).join(', ')}
+
+Anforderungen:
+- Genau 2 vollständige deutsche Sätze
+- Satz 1: Kernaufgabe/Herausforderung der Position
+- Satz 2: Warum es zum Profil passt  
+- Keine Wiederholung von Titel/Firma (stehen separat)
+- Perfekte deutsche Grammatik
+- Abgeschlossene Gedanken
+- Maximal 200 Zeichen total
+
+Format: [Satz 1]. [Satz 2].`;
+        
+        try {
+            const data = await this.chatWithSam(
+                [{ role: 'user', content: summaryPrompt }],
+                'Du bist ein Experte für präzise deutsche Textzusammenfassungen. Erstelle professionelle, grammatisch korrekte Zusammenfassungen für Job-Listen.',
+                { timeout: 15000 } // Shorter timeout for summaries
+            );
+            
+            const summary = data.content[0].text.trim();
+            console.log('✅ Job summary generated successfully');
+            return summary;
+            
+        } catch (error) {
+            console.error('❌ Error generating job summary:', error);
+            // Fallback to basic summary if API fails
+            const fallback = `${jobCard.title.includes('Change') ? 'Change-Management' : jobCard.title.includes('Operations') ? 'Operations-Management' : 'Strategische'} Position mit hoher Verantwortung. Passt gut zu deinem Profil.`;
+            console.log('⚠️ Using fallback summary');
+            return fallback;
+        }
     }
 };
 

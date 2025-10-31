@@ -1,3 +1,29 @@
+// Job Summary Component with async loading
+const JobSummary = ({ job }) => {
+    const [summary, setSummary] = React.useState('Lade Zusammenfassung...');
+    const [isLoading, setIsLoading] = React.useState(true);
+    
+    React.useEffect(() => {
+        const loadSummary = async () => {
+            try {
+                const generatedSummary = await Helpers.generateJobSummary(job);
+                setSummary(generatedSummary);
+            } catch (error) {
+                setSummary('Zusammenfassung nicht verfügbar.');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        
+        loadSummary();
+    }, [job.id]);
+    
+    return React.createElement('p', {
+        className: `saved-job-summary ${isLoading ? 'loading' : ''}`,
+        style: isLoading ? { fontStyle: 'italic', color: '#9ca3af' } : {}
+    }, summary);
+};
+
 // Saved Jobs Panel Component
 const SavedJobsPanel = ({ savedJobs, showSavedJobs, onClose, onRemoveJob }) => {
     if (!showSavedJobs) return null;
@@ -34,7 +60,9 @@ const SavedJobsPanel = ({ savedJobs, showSavedJobs, onClose, onRemoveJob }) => {
                 React.createElement('div', {
                     key: 'list',
                     className: 'saved-jobs-list'
-                }, savedJobs.map((job) => 
+                }, savedJobs
+                    .sort((a, b) => (b.fitScore || 0) - (a.fitScore || 0)) // Sort by fit score descending
+                    .map((job) => 
                     React.createElement('div', {
                         key: job.id,
                         className: 'saved-job-item'
@@ -43,14 +71,24 @@ const SavedJobsPanel = ({ savedJobs, showSavedJobs, onClose, onRemoveJob }) => {
                             key: 'title',
                             className: 'saved-job-title'
                         }, job.title),
-                        React.createElement('p', {
-                            key: 'meta',
-                            className: 'saved-job-meta'
-                        }, `${job.company} · ${job.location}`),
-                        React.createElement('p', {
+                        React.createElement('div', {
+                            key: 'meta-row',
+                            className: 'saved-job-meta-row'
+                        }, [
+                            React.createElement('p', {
+                                key: 'meta',
+                                className: 'saved-job-meta'
+                            }, `${job.company} · ${job.location}`),
+                            job.fitScore && React.createElement('span', {
+                                key: 'fit-score',
+                                className: `saved-job-fit-score ${job.fitScore >= 85 ? 'excellent' : job.fitScore >= 75 ? 'good' : 'fair'}`,
+                                title: `${job.fitScore}% Passung`
+                            }, `${job.fitScore}% ✓`)
+                        ].filter(Boolean)),
+                        React.createElement(JobSummary, {
                             key: 'summary',
-                            className: 'saved-job-summary'
-                        }, Helpers.generateJobSummary(job)),
+                            job: job
+                        }),
                         React.createElement('div', {
                             key: 'actions',
                             className: 'saved-job-actions'

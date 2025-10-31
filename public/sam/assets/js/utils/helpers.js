@@ -233,148 +233,37 @@ In welcher beruflichen Situation befindest du dich gerade?`;
         return JSON.parse(JSON.stringify(obj));
     },
 
-    // Generate high-quality job summary using template approach
-    generateJobSummary: (job) => {
-        if (!job.title && !job.company) return '';
-        
-        const title = job.title || '';
-        const company = job.company || '';
-        const pros = job.pros || [];
-        const fitScore = job.fitScore || 0;
-        
-        // Step 1: Classify job type and determine role description
-        const classifyJobType = (title) => {
-            const titleLower = title.toLowerCase();
-            
-            if (titleLower.includes('change') || titleLower.includes('transformation')) {
-                return {
-                    activity: 'Change-Management und Transformationsprojekte',
-                    verb: 'leitest'
-                };
-            }
-            if (titleLower.includes('operations') || titleLower.includes('coo') || titleLower.includes('betriebsleiter')) {
-                return {
-                    activity: 'operative Prozesse und Geschäftsoptimierung',
-                    verb: 'verantwortest'
-                };
-            }
-            if (titleLower.includes('consulting') || titleLower.includes('berater')) {
-                return {
-                    activity: 'strategische Beratung und Projektbegleitung',
-                    verb: 'führst durch'
-                };
-            }
-            if (titleLower.includes('manager') || titleLower.includes('lead')) {
-                return {
-                    activity: 'Teamführung und strategische Entwicklung',
-                    verb: 'übernimmst'
-                };
-            }
-            if (titleLower.includes('director') || titleLower.includes('head')) {
-                return {
-                    activity: 'strategische Bereichsleitung',
-                    verb: 'verantwortest'
-                };
-            }
-            if (titleLower.includes('senior') || titleLower.includes('lead')) {
-                return {
-                    activity: 'komplexe Fachaufgaben und Projektleitung',
-                    verb: 'übernimmst'
-                };
-            }
-            
-            // Generic fallback
-            return {
-                activity: 'strategische und operative Aufgaben',
-                verb: 'übernimmst'
-            };
-        };
-        
-        // Step 2: Extract fit reasons from pros (structured data)
-        const getFitReason = (pros) => {
-            if (!pros || pros.length === 0) {
-                return 'deine vielseitige Erfahrung in Change-Management und Leadership optimal nutzt';
-            }
-            
-            // Look for the most descriptive pro
-            const meaningfulPros = pros.filter(pro => 
-                pro.length > 10 && 
-                pro.length < 120 &&
-                !pro.toLowerCase().includes('fit') &&
-                !pro.toLowerCase().includes('score')
-            );
-            
-            if (meaningfulPros.length === 0) {
-                return 'deine Expertise in Transformation und strategischer Führung ideal eingesetzt wird';
-            }
-            
-            // Take the first meaningful pro and make it grammatically correct
-            let reason = meaningfulPros[0].trim();
-            
-            // Clean up and make it fit grammatically
-            reason = reason.replace(/^[\-\*\+]\s*/, ''); // Remove bullet points
-            reason = reason.replace(/^(deine|dein|du|sie)\s+/i, ''); // Remove personal pronouns at start
-            
-            // Make first letter lowercase for proper grammar in sentence
-            if (reason.length > 0) {
-                reason = reason.charAt(0).toLowerCase() + reason.slice(1);
-            }
-            
-            // Ensure it makes sense as "da es [reason]"
-            if (!reason.includes('deine') && !reason.includes('dein')) {
-                reason = `deine ${reason}`;
-            }
-            
-            // Add proper ending if missing
-            if (!reason.includes('nutzt') && !reason.includes('passt') && !reason.includes('ermöglicht')) {
-                reason += ' optimal nutzt';
-            }
-            
-            return reason;
-        };
-        
-        // Step 3: Build summary using templates
-        const jobType = classifyJobType(title);
-        const fitReason = getFitReason(pros);
-        
-        // Template construction with proper German grammar
-        let summary = '';
-        
-        // Sentence 1: Role and activity
-        if (company) {
-            summary = `Als ${title} bei ${company} ${jobType.verb} du ${jobType.activity}.`;
-        } else {
-            summary = `In dieser Position als ${title} ${jobType.verb} du ${jobType.activity}.`;
+    // Generate high-quality job summary using Claude API
+    generateJobSummary: async (job) => {
+        // Return cached summary if available
+        if (job.generatedSummary) {
+            return job.generatedSummary;
         }
         
-        // Sentence 2: Fit reason
-        summary += ` Das passt hervorragend, da es ${fitReason}.`;
-        
-        // Sentence 3: Fit score (if significant)
-        if (fitScore >= 80) {
-            summary += ` Ausgezeichnete Passung mit ${fitScore}% Fit-Score.`;
-        } else if (fitScore >= 75) {
-            summary += ` Sehr gute Passung mit ${fitScore}% Fit-Score.`;
+        // Only generate for jobs with sufficient data
+        if (!job.title || !job.description) {
+            return 'Interessante Position für dein Profil.';
         }
         
-        // Final cleanup
-        summary = summary.trim();
-        summary = summary.replace(/\s+/g, ' '); // Remove extra spaces
-        summary = summary.replace(/\.\s*\./g, '.'); // Remove double periods
-        
-        // Ensure proper capitalization
-        summary = summary.charAt(0).toUpperCase() + summary.slice(1);
-        
-        // Length management - keep it readable (300-450 chars)
-        if (summary.length > 450) {
-            const sentences = summary.split('. ');
-            if (sentences.length >= 2) {
-                summary = sentences.slice(0, 2).join('. ');
-                if (!summary.endsWith('.')) summary += '.';
-            }
+        try {
+            // Use the new API service to generate summary
+            const summary = await ApiService.generateJobSummary(job);
+            
+            // Cache the result on the job object
+            job.generatedSummary = summary;
+            
+            return summary;
+            
+        } catch (error) {
+            console.error('❌ Failed to generate summary, using fallback:', error);
+            
+            // Fallback to simple template if API fails
+            const fallback = `${job.title.includes('Change') ? 'Change-Management' : 
+                              job.title.includes('Operations') ? 'Operations-Management' : 
+                              'Strategische'} Position mit hoher Verantwortung. Passt gut zu deinem Profil.`;
+            
+            return fallback;
         }
-        
-        return summary;
     }
 };
 

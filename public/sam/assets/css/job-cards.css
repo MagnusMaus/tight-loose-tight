@@ -209,10 +209,41 @@
     color: #111827;
 }
 
+.saved-job-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
 .saved-job-meta {
     font-size: 14px;
     color: #6b7280;
-    margin-bottom: 8px;
+    margin: 0;
+}
+
+.saved-job-fit-score {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 12px;
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.saved-job-fit-score.excellent {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.saved-job-fit-score.good {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.saved-job-fit-score.fair {
+    background-color: #fef3c7;
+    color: #92400e;
 }
 
 .saved-job-summary {
@@ -220,11 +251,15 @@
     color: #4b5563;
     line-height: 1.4;
     margin-bottom: 12px;
-    font-style: italic;
     background-color: #f9fafb;
     padding: 8px 10px;
     border-radius: 4px;
     border-left: 3px solid #e5e7eb;
+}
+
+.saved-job-summary.loading {
+    font-style: italic;
+    color: #9ca3af;
 }
 
 .saved-job-actions {

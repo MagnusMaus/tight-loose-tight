@@ -620,6 +620,46 @@ Oder soll ich mit alternativen Suchbegriffenverstärkt in deinem ${userRadius}km
         }
     };
 
+    // Send message directly (for conversation starters)
+    const sendMessageDirect = async (messageContent) => {
+        if (isLoading) return;
+
+        const userMessage = { role: 'user', content: messageContent };
+        const updatedMessages = [...messages, userMessage];
+        setMessages(updatedMessages);
+        setInput('');
+        setIsLoading(true);
+
+        try {
+            const data = await ApiService.chatWithSam(updatedMessages, getSystemPrompt());
+            const assistantMessage = data.content[0].text;
+
+            // Use central processing function!
+            const messagesWithResponse = [...updatedMessages, { role: 'assistant', content: assistantMessage }];
+            await processSamResponse(assistantMessage, messagesWithResponse);
+            
+        } catch (error) {
+            console.error('❌ Error in sendMessageDirect:', error);
+            
+            const isOverloadError = error.message && (
+                error.message.includes('529') || 
+                error.message.includes('overload') || 
+                error.message.includes('Overloaded')
+            );
+            
+            const errorMessage = isOverloadError 
+                ? 'Die KI ist momentan überlastet. Das ist temporär - bitte versuche es in ein paar Sekunden nochmal. 🔄'
+                : 'Technischer Fehler. Bitte nochmal versuchen.';
+                
+            setMessages(prev => [...prev, { 
+                role: 'assistant', 
+                content: errorMessage
+            }]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     // Handle send message
     const handleSend = async () => {
         if (!input.trim() || isLoading) return;
@@ -883,6 +923,7 @@ Oder soll ich mit alternativen Suchbegriffenverstärkt in deinem ${userRadius}km
             showSavedJobs,
             onInputChange: setInput,
             onSend: handleSend,
+            onSendDirect: sendMessageDirect,
             onFileUpload: handleFileUpload,
             onJobAction: handleJobAction,
             onToggleSavedJobs: () => setShowSavedJobs(!showSavedJobs),

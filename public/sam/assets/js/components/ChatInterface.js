@@ -10,6 +10,7 @@ const ChatInterface = ({
     showSavedJobs,
     onInputChange, 
     onSend, 
+    onSendDirect,
     onFileUpload,
     onJobAction,
     onToggleSavedJobs,
@@ -116,26 +117,17 @@ const ChatInterface = ({
                         React.createElement('button', {
                             key: 'starter-1',
                             className: 'conversation-starter-button',
-                            onClick: () => {
-                                onInputChange('Ich bin arbeitslos und suche einen Job.');
-                                setTimeout(() => onSend(), 100);
-                            }
+                            onClick: () => onSendDirect('Ich bin arbeitslos und suche einen Job.')
                         }, 'Ich bin arbeitslos und suche einen Job.'),
                         React.createElement('button', {
                             key: 'starter-2', 
                             className: 'conversation-starter-button',
-                            onClick: () => {
-                                onInputChange('Ich suche den nächsten Karriereschritt.');
-                                setTimeout(() => onSend(), 100);
-                            }
+                            onClick: () => onSendDirect('Ich suche den nächsten Karriereschritt.')
                         }, 'Ich suche den nächsten Karriereschritt.'),
                         React.createElement('button', {
                             key: 'starter-3',
                             className: 'conversation-starter-button', 
-                            onClick: () => {
-                                onInputChange('Ich will mal schauen, was der Arbeitsmarkt mir so bietet.');
-                                setTimeout(() => onSend(), 100);
-                            }
+                            onClick: () => onSendDirect('Ich will mal schauen, was der Arbeitsmarkt mir so bietet.')
                         }, 'Ich will mal schauen, was der Arbeitsmarkt mir so bietet.')
                     ]),
                     React.createElement('div', {

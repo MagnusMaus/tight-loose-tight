@@ -312,36 +312,36 @@
     }
     
     .job-card {
-        flex: 0 0 85%;
-        max-width: 85%;
+        flex: 0 0 92%;
+        max-width: 92%;
         margin: 0;
         scroll-snap-align: center;
-        padding: 16px;
+        padding: 20px;
     }
     
     .job-title {
-        font-size: 18px;
+        font-size: 19px;
     }
     
     .job-meta {
-        font-size: 13px;
+        font-size: 14px;
         gap: 12px;
     }
     
     .job-description {
-        font-size: 13px;
-        line-height: 1.4;
+        font-size: 14px;
+        line-height: 1.5;
     }
     
     .job-pros-title,
     .job-cons-title {
-        font-size: 12px;
+        font-size: 13px;
         margin-bottom: 4px;
     }
     
     .job-pros-list,
     .job-cons-list {
-        font-size: 12px;
+        font-size: 13px;
     }
     
     .job-pros-list li,

@@ -331,12 +331,6 @@
     .job-description {
         font-size: 13px;
         line-height: 1.4;
-        max-height: 60px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
     }
     
     .job-pros-title,
@@ -348,8 +342,6 @@
     .job-pros-list,
     .job-cons-list {
         font-size: 12px;
-        max-height: 40px;
-        overflow: hidden;
     }
     
     .job-pros-list li,

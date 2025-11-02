@@ -89,7 +89,8 @@ JOB-SUCHE BEST PRACTICES:
 - Psychografisch-basierte Suche: Denke an verwandte Rollen die zum Persönlichkeitsprofil passen
 - Location: IMMER eine konkrete deutsche Stadt angeben ("Berlin", "München", "Hamburg", "Hannover")
 - NIEMALS location leer lassen - die API verlangt konkrete Städte!
-- Das System erweitert automatisch: spezifisch → breit, lokal → deutschlandweit
+- RADIUS: Nutze STRIKT den vom User angegebenen Radius - KEINE automatische Erweiterung!
+- FALLBACK BEI KEINE ERGEBNISSE: Erst alternative Suchbegriffe probieren, dann um Erlaubnis für größeren Radius fragen
 
 DEUTSCHE BEGRIFFE für internationale Rollen:
 - COO → "Betriebsleiter", "Geschäftsführer Operations" 
@@ -196,6 +197,21 @@ F2: Zukunftsvision
 F3: Fähigkeiten & Erfahrungen
 "Welche (besonderen ✨) Fähigkeiten besitzt du? Gehe dabei gern auf deine gesammelten Erfahrungen ein. Wenn du möchtest, dann kannst du gerne dein CV hochladen, um es dir einfach zu machen. 😊📄"
 
+F4: Standort & Suchradius (OBLIGATORISCH vor Jobsuche)
+"Wo wohnst du und in welchem Umkreis soll ich nach Jobs für dich suchen? 
+
+Zum Beispiel: 'Ich wohne in Hannover und suche im Umkreis von 50 km'
+
+Du kannst wählen zwischen:
+• 25 km um deinen Wohnort (nur lokale Jobs)
+• 50 km um deinen Wohnort (regionale Suche) 
+• 100 km um deinen Wohnort (erweiterte Region)
+• Deutschlandweit (bei Remote-Jobs oder hoher Mobilität)
+
+Diese Angaben sind wichtig, damit ich nur für dich erreichbare Stellen finde. 📍"
+
+WICHTIG: Diese Frage MUSS vor der ersten Jobsuche gestellt werden! Nutze sowohl Ort als auch Radius strikt bei TRIGGER_SEARCH.
+
 PROFILERSTELLUNG - LIES ZWISCHEN DEN ZEILEN:
 - Analysiere nach jeder Antwort: Explizite Aussagen, implizite Hinweise, Karrieremuster, Motivations-Indikatoren
 - Erstelle laufend ein psychografisches Profil mit Werte-Scores (1-10 auf verschiedenen Dimensionen)
@@ -259,8 +275,17 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
                     return true;
                 }
                 
-                // Start job search
-                await searchJobs(searchParams.query, searchParams.location || 'Hannover', updatedMessages);
+                // Extract user radius and location from conversation history
+                const userRadius = JobSearchService.extractUserRadius(updatedMessages);
+                const userLocation = JobSearchService.extractUserLocation(updatedMessages);
+                console.log('📍 Extracted user radius:', userRadius);
+                console.log('🏠 Extracted user location:', userLocation);
+                
+                // Use extracted location if available, otherwise fallback to search params or default
+                const searchLocation = userLocation || searchParams.location || 'Hannover';
+                
+                // Start job search with user location and radius
+                await searchJobs(searchParams.query, searchLocation, updatedMessages, userRadius);
                 return true; // Processed!
                 
             } catch (e) {
@@ -336,16 +361,17 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
     };
 
     // Main job search function
-    const searchJobs = async (query, location, currentMessages) => {
+    const searchJobs = async (query, location, currentMessages, userRadius = null) => {
         setIsSearchingJobs(true);
         
         try {
-            // Intelligent tiered search
-            const foundJobs = await JobSearchService.searchJobsIntelligent(
+            // Intelligent tiered search with user radius
+            let foundJobs = await JobSearchService.searchJobsIntelligent(
                 query, 
                 location, 
                 currentMessages, 
-                shownJobUrls
+                shownJobUrls,
+                userRadius
             );
             
             if (!foundJobs) {
@@ -359,7 +385,8 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
                         fallbackQuery, 
                         location, 
                         currentMessages, 
-                        shownJobUrls
+                        shownJobUrls,
+                        userRadius
                     );
                     
                     if (fallbackJobs) {
@@ -369,12 +396,28 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
                 }
                 
                 if (!foundJobs) {
-                    setMessages(prev => [...prev, {
-                        role: 'assistant',
-                        content: `Ich habe sehr gründlich in verschiedenen Kategorien gesucht, aber momentan keine passenden Stellen gefunden. Das kann an der spezifischen Marktsituation liegen. Lass uns dein Profil etwas breiter fassen - welche verwandten Rollen würden dich auch interessieren? 🤔`
-                    }]);
-                    setIsSearchingJobs(false);
-                    return null;
+                    // If user specified a radius and no jobs found, ask for radius expansion
+                    if (userRadius && userRadius < 200) {
+                        setMessages(prev => [...prev, {
+                            role: 'assistant',
+                            content: `Ich habe im gewünschten ${userRadius}km Radius keine passenden Stellen gefunden. Darf ich den Suchradius erweitern? 
+                            
+Du kannst wählen:
+• Bis 100 km um deinen Wohnort
+• Deutschlandweit (bei Remote-Jobs oder hoher Mobilität)
+
+Oder soll ich mit alternativen Suchbegriffenverstärkt in deinem ${userRadius}km Radius suchen? 🤔`
+                        }]);
+                        setIsSearchingJobs(false);
+                        return null;
+                    } else {
+                        setMessages(prev => [...prev, {
+                            role: 'assistant',
+                            content: `Ich habe sehr gründlich in verschiedenen Kategorien gesucht, aber momentan keine passenden Stellen gefunden. Das kann an der spezifischen Marktsituation liegen. Lass uns dein Profil etwas breiter fassen - welche verwandten Rollen würden dich auch interessieren? 🤔`
+                        }]);
+                        setIsSearchingJobs(false);
+                        return null;
+                    }
                 }
             }
             

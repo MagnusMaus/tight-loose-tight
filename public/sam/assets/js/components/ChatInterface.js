@@ -108,6 +108,27 @@ const ChatInterface = ({
                     key: 'input-area',
                     className: 'input-area'
                 }, [
+                    // Conversation Starters (only show if first interaction)
+                    messages.length === 1 && React.createElement('div', {
+                        key: 'conversation-starters',
+                        className: 'conversation-starters'
+                    }, [
+                        React.createElement('button', {
+                            key: 'starter-1',
+                            className: 'conversation-starter-button',
+                            onClick: () => onInputChange('Ich bin arbeitslos und suche einen Job.')
+                        }, 'Ich bin arbeitslos und suche einen Job.'),
+                        React.createElement('button', {
+                            key: 'starter-2', 
+                            className: 'conversation-starter-button',
+                            onClick: () => onInputChange('Ich suche den nächsten Karriereschritt.')
+                        }, 'Ich suche den nächsten Karriereschritt.'),
+                        React.createElement('button', {
+                            key: 'starter-3',
+                            className: 'conversation-starter-button', 
+                            onClick: () => onInputChange('Ich will mal schauen, was der Arbeitsmarkt mir so bietet.')
+                        }, 'Ich will mal schauen, was der Arbeitsmarkt mir so bietet.')
+                    ]),
                     React.createElement('div', {
                         key: 'input-container',
                         className: 'input-container'
@@ -143,7 +164,7 @@ const ChatInterface = ({
                                     onSend();
                                 }
                             },
-                            placeholder: 'Oder schreib deine Antwort...',
+                            placeholder: messages.length === 1 ? 'Oder schreib deine Antwort...' : 'Deine Antwort...',
                             disabled: isLoading || isSearchingJobs || isUploadingCV,
                             rows: 1
                         }),

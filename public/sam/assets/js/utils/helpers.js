@@ -144,48 +144,136 @@ In welcher beruflichen Situation befindest du dich gerade?`;
         };
     },
 
-    // Generate query variants for job search
+    // Generate query variants for job search - ENHANCED for better coverage
     generateQueryVariants: (query) => {
-        const variants = [query];
+        console.log('🔧 Generating query variants for:', query);
+        
+        const variants = [];
         const words = query.split(' ').filter(w => w.length > 2);
         
-        // Add German equivalent translations for international terms
-        const germanEquivalents = {
-            'COO': ['Betriebsleiter', 'Geschäftsführer', 'Prokurist', 'Operations Manager'],
-            'Chief Operating Officer': ['Betriebsleiter', 'Geschäftsführer Operations', 'Leiter Operations'],
-            'Head of Inhouse Consulting': ['Leiter Interne Beratung', 'Manager Consulting', 'Berater', 'Change Manager'],
-            'Operations Director': ['Betriebsleiter', 'Operations Manager', 'Leiter Betrieb', 'Produktionsleiter'],
-            'Change Manager': ['Change Manager', 'Transformation Manager', 'Organisationsentwickler'],
-            'Business Development': ['Geschäftsentwicklung', 'Business Development', 'Vertriebsleiter'],
-            'Consulting': ['Beratung', 'Unternehmensberatung', 'Berater'],
-            'Director': ['Leiter', 'Direktor', 'Manager'],
-            'Manager': ['Manager', 'Leiter', 'Führungskraft']
+        // 1. Original query first (most specific)
+        variants.push(query);
+        
+        // 2. UNIVERSAL German equivalent translations and synonyms
+        const synonymMapping = {
+            // International roles to German
+            'COO': ['Betriebsleiter', 'Geschäftsführer', 'Operations Manager'],
+            'Chief Operating Officer': ['Betriebsleiter', 'Operations Manager'],
+            'Director': ['Leiter', 'Manager', 'Direktor'],
+            'Head of': ['Leiter', 'Manager'],
+            'Vice President': ['Leiter', 'Manager', 'Direktor'],
+            
+            // Lean & Operations synonyms
+            'Lean': ['OPEX', 'Operations Excellence', 'Process Manager', 'Continuous Improvement'],
+            'Operations Excellence': ['OPEX', 'Lean', 'Operations Manager'],
+            'OPEX': ['Lean', 'Operations Excellence', 'Process Manager'],
+            'Process Manager': ['Lean', 'OPEX', 'Operations Excellence'],
+            
+            // Change & Transformation synonyms  
+            'Change Manager': ['Transformation Manager', 'Organisationsentwickler', 'Change'],
+            'Transformation': ['Change', 'Organisationsentwicklung', 'Change Manager'],
+            'Organisationsentwickler': ['Change Manager', 'Transformation Manager'],
+            
+            // IT & Digital synonyms
+            'IT Manager': ['Technology Manager', 'Digital Manager', 'IT'],
+            'Digital': ['IT', 'Technology', 'Tech Manager'],
+            'Technology Manager': ['IT Manager', 'Digital Manager'],
+            
+            // Business & Strategy synonyms
+            'Business Development': ['Geschäftsentwicklung', 'Strategic Development'],
+            'Strategic': ['Business Development', 'Strategy Manager'],
+            'Consultant': ['Berater', 'Consulting', 'Beratung'],
+            'Consulting': ['Beratung', 'Berater', 'Consultant'],
+            
+            // HR & People synonyms
+            'HR': ['Personal', 'Human Resources', 'Personalentwicklung'],
+            'Human Resources': ['HR', 'Personal', 'Personalwesen'],
+            'Personalentwicklung': ['HR', 'Training Manager', 'Learning'],
+            'Training Manager': ['Personalentwicklung', 'Learning', 'Bildungsmanager'],
+            
+            // Project & Program synonyms
+            'Project Manager': ['Projektmanager', 'Projektleiter', 'Project Lead'],
+            'Program Manager': ['Programmmanager', 'Program Lead'],
+            'Scrum Master': ['Agile Coach', 'Scrum', 'Agile'],
+            'Product Manager': ['Product Owner', 'Produktmanager'],
+            
+            // Finance & Controlling synonyms
+            'Controller': ['Controlling', 'Financial Analyst', 'Finance Manager'],
+            'Finance Manager': ['Controller', 'Financial Manager', 'Finance'],
+            'Accounting': ['Buchhaltung', 'Finance', 'Controller']
         };
         
-        // Check for German equivalents
-        Object.keys(germanEquivalents).forEach(key => {
+        // Add relevant synonyms based on query content
+        Object.keys(synonymMapping).forEach(key => {
             if (query.toLowerCase().includes(key.toLowerCase())) {
-                variants.push(...germanEquivalents[key]);
+                variants.push(...synonymMapping[key]);
             }
         });
         
-        // Original word-based variants
+        // 3. PROGRESSIVE QUERY SIMPLIFICATION (key improvement!)
         if (words.length >= 3) {
-            variants.push(words.slice(0, 2).join(' '));
-            variants.push(words[0] + ' ' + words[words.length - 1]);
-            variants.push(words[0]);
-            variants.push(words[words.length - 1]);
+            // "Lean Manager IT" -> "Lean Manager", "Lean", "Manager"
+            variants.push(words.slice(0, 2).join(' ')); // First 2 words
+            variants.push(words[0]); // First word only
+            variants.push(words[words.length - 1]); // Last word only
         } else if (words.length === 2) {
-            variants.push(words[0] + ' Manager');
-            variants.push(words[0]);
-            variants.push(words[1]);
+            // "Lean Manager" -> "Lean", "Manager"  
+            variants.push(words[0]); // First word
+            variants.push(words[1]); // Second word
+            variants.push(words[0] + ' Manager'); // Add Manager if not present
         } else if (words.length === 1) {
+            // Single word - add Manager variant
             variants.push(words[0] + ' Manager');
         }
         
-        // Remove duplicates and keep order
+        // 4. UNIVERSAL broad fallback terms based on detected categories
+        const categoryFallbacks = {
+            // Operations & Process
+            operations: ['Manager', 'Leiter', 'Operations', 'Betrieb'],
+            lean: ['Process', 'Improvement', 'Excellence'],
+            process: ['Manager', 'Optimization', 'Excellence'],
+            
+            // Technology & Digital
+            it: ['Technology', 'Digital', 'Tech', 'Software'],
+            digital: ['Technology', 'IT', 'Innovation'],
+            tech: ['Technology', 'IT', 'Digital'],
+            
+            // Change & Transformation  
+            change: ['Transformation', 'Development', 'Innovation'],
+            transformation: ['Change', 'Development', 'Innovation'],
+            agile: ['Scrum', 'Coach', 'Transformation'],
+            
+            // People & HR
+            hr: ['Personal', 'People', 'Human'],
+            personal: ['HR', 'People', 'Development'],
+            training: ['Development', 'Learning', 'Education'],
+            
+            // Business & Strategy
+            business: ['Strategic', 'Development', 'Management'],
+            strategic: ['Business', 'Strategy', 'Planning'],
+            consultant: ['Advisor', 'Expert', 'Specialist'],
+            
+            // Finance & Control
+            finance: ['Financial', 'Accounting', 'Controller'],
+            controller: ['Finance', 'Accounting', 'Financial'],
+            accounting: ['Finance', 'Controller', 'Financial'],
+            
+            // Project & Program
+            project: ['Program', 'Initiative', 'Management'],
+            program: ['Project', 'Portfolio', 'Management'],
+            product: ['Project', 'Development', 'Management']
+        };
+        
+        // Add category-based fallbacks
+        Object.keys(categoryFallbacks).forEach(category => {
+            if (query.toLowerCase().includes(category)) {
+                variants.push(...categoryFallbacks[category]);
+            }
+        });
+        
+        // 5. Remove duplicates while preserving order (most specific first)
         const unique = [...new Set(variants)];
-        console.log('📊 Query variants:', unique);
+        console.log('📊 Generated query variants (specific → broad):', unique);
         return unique;
     },
 

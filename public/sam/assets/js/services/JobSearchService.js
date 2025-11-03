@@ -8,6 +8,7 @@ const JobSearchService = {
         try {
             // Generate query variants 
             const queryVariants = Helpers.generateQueryVariants(query);
+            console.log(`🔧 Generated ${queryVariants.length} query variants:`, queryVariants);
             const userRegion = location || AppConstants.JOB_SEARCH.DEFAULT_LOCATION;
             
             // Use user radius if specified, otherwise fall back to tiered approach
@@ -23,10 +24,11 @@ const JobSearchService = {
             let attemptNumber = 0;
             let foundJobs = null;
             
-            // Try all combinations: Query variants × Location tiers
+            // PROGRESSIVE SEARCH STRATEGY: Query variants first, then locations
             for (const queryVariant of queryVariants) {
                 if (foundJobs) break; // Stop if jobs found
                 
+                // For each query, try user location first, then expand geographically
                 for (const locationTier of locationTiers) {
                     attemptNumber++;
                     
@@ -55,24 +57,30 @@ const JobSearchService = {
                             
                             // Only if NEW jobs after filtering -> count as success
                             if (newJobs.length > 0) {
-                                console.log(`🎉 SUCCESS! Found ${newJobs.length} NEW jobs!`);
+                                console.log(`🎉 SUCCESS! Found ${newJobs.length} NEW jobs with "${queryVariant}"!`);
                                 foundJobs = {
                                     jobs: newJobs,
                                     query: queryVariant,
                                     location: locationTier.location
                                 };
-                                break; // Success - stop inner loop
+                                break; // Success - stop inner loop for this query
                             } else {
-                                console.log('⚠️  All jobs were already shown - continuing search...');
+                                console.log('⚠️  All jobs were already shown - trying next location...');
                             }
                         } else {
-                            console.log('📭 No jobs, trying next combination...');
+                            console.log('📭 No jobs, trying next location...');
                         }
                         
                     } catch (error) {
                         console.error(`❌ Error in attempt ${attemptNumber}:`, error);
                         // Continue with next combination
                     }
+                }
+                
+                // If query found jobs, stop trying other queries
+                if (foundJobs) {
+                    console.log(`✅ Query "${queryVariant}" successful - stopping query expansion`);
+                    break;
                 }
             }
             

@@ -1,90 +1,51 @@
 // Job Search Service for intelligent job searching
 const JobSearchService = {
-    // Main intelligent tiered search function with user radius respect
+    // Optimized job collection using single-word search terms
     searchJobsIntelligent: async (query, location, currentMessages, shownJobUrls = new Set(), userRadius = null) => {
-        console.log('🎯 Starting intelligent tiered search for:', query);
+        console.log('🎯 Starting optimized single-word job collection');
         console.log('📍 User specified radius:', userRadius || 'Not specified');
         
         try {
-            // Generate query variants 
-            const queryVariants = Helpers.generateQueryVariants(query);
-            console.log(`🔧 Generated ${queryVariants.length} query variants:`, queryVariants);
             const userRegion = location || AppConstants.JOB_SEARCH.DEFAULT_LOCATION;
             
-            // Use user radius if specified, otherwise fall back to tiered approach
-            let locationTiers;
-            if (userRadius) {
-                // Respect user radius strictly - only search in specified radius
-                locationTiers = [{ location: userRegion, radius: userRadius, label: `User specified ${userRadius}km` }];
-            } else {
-                // Fallback to tiered approach if no radius specified
-                locationTiers = Helpers.generateLocationTiers(userRegion);
+            // Generate profession-specific single-word search terms
+            const userProfile = { messages: currentMessages };
+            const searchTerms = Helpers.generateSingleWordSearchTerms(userProfile);
+            
+            // Collect 10-25 jobs using sequential single-word searches
+            const collectedJobs = await Helpers.collectJobsSequentially(searchTerms, userRegion, 10, 25);
+            
+            if (collectedJobs.length === 0) {
+                console.log('📭 No jobs found with any search terms');
+                return null;
             }
             
-            let attemptNumber = 0;
-            let foundJobs = null;
+            // Filter out already shown jobs
+            console.log(`📋 Total jobs collected: ${collectedJobs.length}`);
+            console.log(`🔍 Already shown jobs: ${shownJobUrls.size}`);
             
-            // PROGRESSIVE SEARCH STRATEGY: Query variants first, then locations
-            for (const queryVariant of queryVariants) {
-                if (foundJobs) break; // Stop if jobs found
-                
-                // For each query, try user location first, then expand geographically
-                for (const locationTier of locationTiers) {
-                    attemptNumber++;
-                    
-                    console.log(`🔍 Attempt ${attemptNumber}: "${queryVariant}" in ${locationTier.location} (${locationTier.radius}km) [${locationTier.label}]`);
-                    
-                    try {
-                        const data = await ApiService.searchJobs(queryVariant, locationTier.location, locationTier.radius);
-                        
-                        console.log(`📊 Result: ${data.total || 0} jobs found`);
-                        
-                        if (data.jobs && data.jobs.length > 0) {
-                            // Filter already shown jobs immediately
-                            console.log(`   📋 Total jobs from API: ${data.jobs.length}`);
-                            console.log(`   🔍 Already shown jobs: ${shownJobUrls.size}`);
-                            
-                            const newJobs = data.jobs.filter(job => {
-                                const jobKey = job.url || `${job.title}_${job.company}`;
-                                const isNew = !shownJobUrls.has(jobKey);
-                                if (!isNew) {
-                                    console.log(`   ⏭️  Skipping already shown: "${job.title}" at ${job.company}`);
-                                }
-                                return isNew;
-                            });
-                            
-                            console.log(`   ✨ New jobs after filtering: ${newJobs.length}`);
-                            
-                            // Only if NEW jobs after filtering -> count as success
-                            if (newJobs.length > 0) {
-                                console.log(`🎉 SUCCESS! Found ${newJobs.length} NEW jobs with "${queryVariant}"!`);
-                                foundJobs = {
-                                    jobs: newJobs,
-                                    query: queryVariant,
-                                    location: locationTier.location
-                                };
-                                break; // Success - stop inner loop for this query
-                            } else {
-                                console.log('⚠️  All jobs were already shown - trying next location...');
-                            }
-                        } else {
-                            console.log('📭 No jobs, trying next location...');
-                        }
-                        
-                    } catch (error) {
-                        console.error(`❌ Error in attempt ${attemptNumber}:`, error);
-                        // Continue with next combination
-                    }
+            const newJobs = collectedJobs.filter(job => {
+                const jobKey = job.url || `${job.title}_${job.company}`;
+                const isNew = !shownJobUrls.has(jobKey);
+                if (!isNew) {
+                    console.log(`   ⏭️  Skipping already shown: "${job.title}" at ${job.company}`);
                 }
-                
-                // If query found jobs, stop trying other queries
-                if (foundJobs) {
-                    console.log(`✅ Query "${queryVariant}" successful - stopping query expansion`);
-                    break;
-                }
+                return isNew;
+            });
+            
+            console.log(`✨ New jobs after filtering: ${newJobs.length}`);
+            
+            if (newJobs.length === 0) {
+                console.log('⚠️  All collected jobs were already shown');
+                return null;
             }
             
-            return foundJobs;
+            console.log(`🎉 SUCCESS! Collected ${newJobs.length} NEW jobs for analysis!`);
+            return {
+                jobs: newJobs,
+                query: `Sequential search with terms: ${searchTerms.join(', ')}`,
+                location: userRegion
+            };
             
         } catch (error) {
             console.error('❌ CRITICAL ERROR in searchJobsIntelligent:', error);
@@ -102,21 +63,24 @@ const JobSearchService = {
         console.log(`   Location: "${foundJobs.location}"`);
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         
+        // Debug: Log actual job structure
+        console.log('🔍 DEBUG: First job object structure:', JSON.stringify(foundJobs.jobs[0], null, 2));
+        
         // Create job analysis prompt as system context
         const jobAnalysisSystemPrompt = systemPrompt + `
 
 [JOB-RANKING-MODUS]
 Hier sind ${Math.min(foundJobs.jobs.length, 5)} Jobs zur Analyse:
 
-${foundJobs.jobs.slice(0, 5).map((job, i) => `Job ${i + 1}: ${job.title} bei ${job.company} in ${job.location}
-Beschreibung: ${job.description}
-URL: ${job.url}`).join('\n\n')}
+${foundJobs.jobs.slice(0, 5).map((job, i) => `Job ${i + 1}: ${job.title || 'Kein Titel'} bei ${job.company || job.employer || 'Unbekanntes Unternehmen'} in ${job.location || job.workingPlace || 'Unbekannter Ort'}
+Beschreibung: ${job.description || job.htmlContent || job.content || 'Keine Beschreibung verfügbar'}
+URL: ${job.url || job.externalUrl || '#'}`).join('\n\n')}
 
 AUFGABE:
 1. Bewerte ALLE Jobs (50% psychografisch, 30% fachlich, 20% Umfeld)
-2. Erstelle JOB_CARD für JEDEN Job mit 70%+ Fit-Score
-3. Sortiere nach Fit-Score (beste zuerst)
-4. Bei Fit-Score unter 70%: SCHWEIGEN (kein Output)
+2. Erstelle JOB_CARD für JEDEN Job mit 75%+ Fit-Score
+3. Sortiere nach Fit-Score (beste zuerst)  
+4. Bei Fit-Score unter 75%: SCHWEIGEN (kein Output)
 
 MEHRFACH-OUTPUT Erlaubt:
 - Mehrere JOB_CARDs nacheinander für verschiedene Jobs

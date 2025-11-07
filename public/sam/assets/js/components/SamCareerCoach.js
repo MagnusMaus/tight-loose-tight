@@ -541,8 +541,8 @@ Oder soll ich mit alternativen Suchbegriffenverstärkt in deinem ${userRadius}km
                 console.log(`🏆 Found ${parseResult.count} job cards!`);
                 
                 // Filter for quality jobs (70%+ fit score)
-                const qualityJobs = parseResult.jobCards.filter(job => job.fitScore >= 70);
-                console.log(`   ✨ Quality jobs (70%+): ${qualityJobs.length}`);
+                const qualityJobs = parseResult.jobCards.filter(job => job.fitScore >= 75);
+                console.log(`   ✨ Quality jobs (75%+): ${qualityJobs.length}`);
                 
                 if (qualityJobs.length > 0) {
                     // Sort by fit score and assign IDs
@@ -586,18 +586,37 @@ Oder soll ich mit alternativen Suchbegriffenverstärkt in deinem ${userRadius}km
                 }
             }
             
-            // No quality jobs found - try psychographic alternatives
-            console.log('🧠 No quality jobs found - trying psychographic alternatives...');
+            // No quality jobs found - try profession-specific alternatives
+            console.log('🔧 No quality jobs found - trying profession-specific alternatives...');
             
-            const psychographicAlternatives = [
-                'Change Manager', 'Transformation Manager', 'Organisationsentwickler',
-                'Business Development Manager', 'Strategie Manager', 'Prozess Manager',
-                'Team Lead', 'Abteilungsleiter', 'Projektleiter', 'Product Manager',
-                'Beratung', 'Consulting', 'Management Consultant', 'Berater'
-            ];
+            // Generate profession-specific alternatives based on user profile
+            const userText = currentMessages.map(m => m.content).join(' ').toLowerCase();
+            let professionAlternatives = [];
             
-            for (const altQuery of psychographicAlternatives) {
-                console.log(`🔄 Trying psychographic alternative: ${altQuery}`);
+            // Technical/Engineering alternatives
+            if (userText.includes('elektriker') || userText.includes('sps') || userText.includes('automatisierung')) {
+                professionAlternatives = ['Techniker', 'Elektrotechniker', 'Anlagentechniker', 'Wartungstechniker', 'Instandhaltung'];
+            }
+            // IT/Software alternatives  
+            else if (userText.includes('entwickler') || userText.includes('programmier') || userText.includes('software')) {
+                professionAlternatives = ['Developer', 'Softwareentwickler', 'Webentwickler', 'IT-Spezialist', 'Systemadministrator'];
+            }
+            // Business/Management alternatives
+            else if (userText.includes('manager') || userText.includes('leitung') || userText.includes('führung')) {
+                professionAlternatives = ['Teamleiter', 'Abteilungsleiter', 'Projektleiter', 'Koordinator', 'Supervisor'];
+            }
+            // Generic fallback
+            else {
+                professionAlternatives = ['Spezialist', 'Sachbearbeiter', 'Fachkraft', 'Koordinator', 'Assistent'];
+            }
+            
+            // Circuit breaker: limit alternative searches to prevent infinite loops
+            const maxAlternatives = 3;
+            let alternativeCount = 0;
+            
+            for (const altQuery of professionAlternatives.slice(0, maxAlternatives)) {
+                alternativeCount++;
+                console.log(`🔄 Trying profession-specific alternative ${alternativeCount}/${maxAlternatives}: ${altQuery}`);
                 const altJobs = await JobSearchService.searchJobsIntelligent(
                     altQuery, 
                     location, 
@@ -614,7 +633,7 @@ Oder soll ich mit alternativen Suchbegriffenverstärkt in deinem ${userRadius}km
                     
                     const altParseResult = Helpers.parseAllJobCards(altMessage);
                     if (altParseResult.count > 0) {
-                        const altQualityJobs = altParseResult.jobCards.filter(job => job.fitScore >= 70);
+                        const altQualityJobs = altParseResult.jobCards.filter(job => job.fitScore >= 75);
                         if (altQualityJobs.length > 0) {
                             console.log(`✅ Found ${altQualityJobs.length} quality jobs with alternative: ${altQuery}`);
                             
@@ -650,10 +669,13 @@ Oder soll ich mit alternativen Suchbegriffenverstärkt in deinem ${userRadius}km
                             return altJobs.jobs;
                         }
                     }
+                } catch (error) {
+                    console.error(`❌ Error with alternative "${altQuery}":`, error);
+                    continue; // Try next alternative
                 }
             }
             
-            console.log('⚠️ Exhausted all alternatives');
+            console.log(`⚠️ Exhausted all ${maxAlternatives} profession-specific alternatives`);
             setIsSearchingJobs(false);
             return null;
             

@@ -144,137 +144,89 @@ In welcher beruflichen Situation befindest du dich gerade?`;
         };
     },
 
-    // Generate query variants for job search - ENHANCED for better coverage
-    generateQueryVariants: (query) => {
-        console.log('🔧 Generating query variants for:', query);
+    // Generate optimized single-word search terms for job collection
+    generateSingleWordSearchTerms: (userProfile) => {
+        console.log('🔧 Generating single-word search terms for user profile');
         
-        const variants = [];
-        const words = query.split(' ').filter(w => w.length > 2);
+        // Extract profession-specific core terms based on user input
+        const coreTerms = [];
+        const userText = (userProfile.messages || []).map(m => m.content).join(' ').toLowerCase();
         
-        // 1. Original query first (most specific)
-        variants.push(query);
-        
-        // 2. UNIVERSAL German equivalent translations and synonyms
-        const synonymMapping = {
-            // International roles to German
-            'COO': ['Betriebsleiter', 'Geschäftsführer', 'Operations Manager'],
-            'Chief Operating Officer': ['Betriebsleiter', 'Operations Manager'],
-            'Director': ['Leiter', 'Manager', 'Direktor'],
-            'Head of': ['Leiter', 'Manager'],
-            'Vice President': ['Leiter', 'Manager', 'Direktor'],
-            
-            // Lean & Operations synonyms
-            'Lean': ['OPEX', 'Operations Excellence', 'Process Manager', 'Continuous Improvement'],
-            'Operations Excellence': ['OPEX', 'Lean', 'Operations Manager'],
-            'OPEX': ['Lean', 'Operations Excellence', 'Process Manager'],
-            'Process Manager': ['Lean', 'OPEX', 'Operations Excellence'],
-            
-            // Change & Transformation synonyms  
-            'Change Manager': ['Transformation Manager', 'Organisationsentwickler', 'Change'],
-            'Transformation': ['Change', 'Organisationsentwicklung', 'Change Manager'],
-            'Organisationsentwickler': ['Change Manager', 'Transformation Manager'],
-            
-            // IT & Digital synonyms
-            'IT Manager': ['Technology Manager', 'Digital Manager', 'IT'],
-            'Digital': ['IT', 'Technology', 'Tech Manager'],
-            'Technology Manager': ['IT Manager', 'Digital Manager'],
-            
-            // Business & Strategy synonyms
-            'Business Development': ['Geschäftsentwicklung', 'Strategic Development'],
-            'Strategic': ['Business Development', 'Strategy Manager'],
-            'Consultant': ['Berater', 'Consulting', 'Beratung'],
-            'Consulting': ['Beratung', 'Berater', 'Consultant'],
-            
-            // HR & People synonyms
-            'HR': ['Personal', 'Human Resources', 'Personalentwicklung'],
-            'Human Resources': ['HR', 'Personal', 'Personalwesen'],
-            'Personalentwicklung': ['HR', 'Training Manager', 'Learning'],
-            'Training Manager': ['Personalentwicklung', 'Learning', 'Bildungsmanager'],
-            
-            // Project & Program synonyms
-            'Project Manager': ['Projektmanager', 'Projektleiter', 'Project Lead'],
-            'Program Manager': ['Programmmanager', 'Program Lead'],
-            'Scrum Master': ['Agile Coach', 'Scrum', 'Agile'],
-            'Product Manager': ['Product Owner', 'Produktmanager'],
-            
-            // Finance & Controlling synonyms
-            'Controller': ['Controlling', 'Financial Analyst', 'Finance Manager'],
-            'Finance Manager': ['Controller', 'Financial Manager', 'Finance'],
-            'Accounting': ['Buchhaltung', 'Finance', 'Controller']
-        };
-        
-        // Add relevant synonyms based on query content
-        Object.keys(synonymMapping).forEach(key => {
-            if (query.toLowerCase().includes(key.toLowerCase())) {
-                variants.push(...synonymMapping[key]);
-            }
-        });
-        
-        // 3. PROGRESSIVE QUERY SIMPLIFICATION (key improvement!)
-        if (words.length >= 3) {
-            // "Lean Manager IT" -> "Lean Manager", "Lean", "Manager"
-            variants.push(words.slice(0, 2).join(' ')); // First 2 words
-            variants.push(words[0]); // First word only
-            variants.push(words[words.length - 1]); // Last word only
-        } else if (words.length === 2) {
-            // "Lean Manager" -> "Lean", "Manager"  
-            variants.push(words[0]); // First word
-            variants.push(words[1]); // Second word
-            variants.push(words[0] + ' Manager'); // Add Manager if not present
-        } else if (words.length === 1) {
-            // Single word - add Manager variant
-            variants.push(words[0] + ' Manager');
+        // Technical/Engineering profiles
+        if (userText.includes('elektriker') || userText.includes('sps') || userText.includes('automatisierung')) {
+            coreTerms.push('SPS', 'Automatisierung', 'Elektriker', 'Steuerung', 'Siemens', 'Technik', 'Elektrotechnik');
         }
         
-        // 4. UNIVERSAL broad fallback terms based on detected categories
-        const categoryFallbacks = {
-            // Operations & Process
-            operations: ['Manager', 'Leiter', 'Operations', 'Betrieb'],
-            lean: ['Process', 'Improvement', 'Excellence'],
-            process: ['Manager', 'Optimization', 'Excellence'],
-            
-            // Technology & Digital
-            it: ['Technology', 'Digital', 'Tech', 'Software'],
-            digital: ['Technology', 'IT', 'Innovation'],
-            tech: ['Technology', 'IT', 'Digital'],
-            
-            // Change & Transformation  
-            change: ['Transformation', 'Development', 'Innovation'],
-            transformation: ['Change', 'Development', 'Innovation'],
-            agile: ['Scrum', 'Coach', 'Transformation'],
-            
-            // People & HR
-            hr: ['Personal', 'People', 'Human'],
-            personal: ['HR', 'People', 'Development'],
-            training: ['Development', 'Learning', 'Education'],
-            
-            // Business & Strategy
-            business: ['Strategic', 'Development', 'Management'],
-            strategic: ['Business', 'Strategy', 'Planning'],
-            consultant: ['Advisor', 'Expert', 'Specialist'],
-            
-            // Finance & Control
-            finance: ['Financial', 'Accounting', 'Controller'],
-            controller: ['Finance', 'Accounting', 'Financial'],
-            accounting: ['Finance', 'Controller', 'Financial'],
-            
-            // Project & Program
-            project: ['Program', 'Initiative', 'Management'],
-            program: ['Project', 'Portfolio', 'Management'],
-            product: ['Project', 'Development', 'Management']
-        };
+        // IT/Software profiles  
+        if (userText.includes('entwickler') || userText.includes('programmier') || userText.includes('software')) {
+            coreTerms.push('Entwickler', 'Programmierer', 'Software', 'Java', 'Python', 'Frontend', 'Backend');
+        }
         
-        // Add category-based fallbacks
-        Object.keys(categoryFallbacks).forEach(category => {
-            if (query.toLowerCase().includes(category)) {
-                variants.push(...categoryFallbacks[category]);
+        // Business/Management profiles
+        if (userText.includes('manager') || userText.includes('leitung') || userText.includes('führung')) {
+            coreTerms.push('Manager', 'Leitung', 'Führung', 'Team', 'Projekt');
+        }
+        
+        // Operations/Lean profiles
+        if (userText.includes('lean') || userText.includes('operations') || userText.includes('prozess')) {
+            coreTerms.push('Lean', 'Operations', 'Prozess', 'Optimierung', 'Excellence');
+        }
+        
+        // Fallback: Generic terms if no specific profile detected
+        if (coreTerms.length === 0) {
+            coreTerms.push('Manager', 'Techniker', 'Spezialist', 'Leiter');
+        }
+        
+        console.log('📊 Generated search terms:', coreTerms);
+        return coreTerms;
+    },
+
+    // Sequential job collection with single-word terms (10-25 jobs target)
+    collectJobsSequentially: async (searchTerms, location, targetMin = 10, targetMax = 25) => {
+        console.log(`🎯 Collecting jobs sequentially, target: ${targetMin}-${targetMax} jobs`);
+        
+        const allJobs = [];
+        const usedJobUrls = new Set();
+        
+        for (const term of searchTerms) {
+            if (allJobs.length >= targetMax) {
+                console.log(`✅ Reached target max (${targetMax} jobs) - stopping collection`);
+                break;
             }
-        });
+            
+            try {
+                console.log(`🔍 Searching for: "${term}"`);
+                const data = await ApiService.searchJobs(term, location, 50);
+                
+                if (data.jobs && data.jobs.length > 0) {
+                    // Filter duplicates and add new jobs
+                    const newJobs = data.jobs.filter(job => {
+                        const jobKey = job.url || `${job.title}_${job.company}`;
+                        if (usedJobUrls.has(jobKey)) return false;
+                        usedJobUrls.add(jobKey);
+                        return true;
+                    });
+                    
+                    allJobs.push(...newJobs);
+                    console.log(`   ✨ Added ${newJobs.length} new jobs (total: ${allJobs.length})`);
+                    
+                    // Stop if we have enough jobs
+                    if (allJobs.length >= targetMin) {
+                        console.log(`✅ Reached target minimum (${targetMin} jobs) - sufficient collection`);
+                        break;
+                    }
+                } else {
+                    console.log(`   📭 No jobs found for "${term}"`);
+                }
+                
+            } catch (error) {
+                console.error(`❌ Error searching for "${term}":`, error);
+                continue; // Try next term
+            }
+        }
         
-        // 5. Remove duplicates while preserving order (most specific first)
-        const unique = [...new Set(variants)];
-        console.log('📊 Generated query variants (specific → broad):', unique);
-        return unique;
+        console.log(`🏆 Job collection complete: ${allJobs.length} jobs collected`);
+        return allJobs.slice(0, targetMax); // Limit to max
     },
 
     // Generate location tiers for job search

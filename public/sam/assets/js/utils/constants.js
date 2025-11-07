@@ -24,7 +24,8 @@ const AppConstants = {
     
     TIMEOUTS: {
         API_TIMEOUT: 30000, // 30 seconds (5s longer than Netlify function timeout)
-        CV_ANALYSIS_TIMEOUT: 35000 // 35 seconds for complex CV analysis
+        CV_ANALYSIS_TIMEOUT: 35000, // 35 seconds for complex CV analysis
+        JOB_ANALYSIS_TIMEOUT: 60000 // 60 seconds for complex job analysis with many jobs
     },
     
     UI: {

@@ -5,8 +5,13 @@ const ApiService = {
         try {
             console.log('🌐 Calling Sam API for chat...');
             
-            // Use extended timeout for CV analysis
-            const timeout = options.isJobAnalysis ? AppConstants.TIMEOUTS.CV_ANALYSIS_TIMEOUT : AppConstants.TIMEOUTS.API_TIMEOUT;
+            // Use extended timeout for job analysis or CV analysis
+            let timeout = AppConstants.TIMEOUTS.API_TIMEOUT;
+            if (options.isJobAnalysis) {
+                timeout = AppConstants.TIMEOUTS.JOB_ANALYSIS_TIMEOUT;
+            } else if (options.isCVAnalysis) {
+                timeout = AppConstants.TIMEOUTS.CV_ANALYSIS_TIMEOUT;
+            }
             
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -35,6 +40,16 @@ const ApiService = {
             
         } catch (error) {
             console.error('❌ Error in chatWithSam:', error);
+            
+            // Enhanced error handling for specific cases
+            if (error.name === 'AbortError') {
+                throw new Error(`Request timeout after ${timeout/1000} seconds. Please try again.`);
+            } else if (error.message.includes('504') || error.message.includes('Gateway Timeout')) {
+                throw new Error('Server timeout - please try again in a moment.');
+            } else if (error.message.includes('Failed to execute \'json\'')) {
+                throw new Error('Invalid server response - please refresh and try again.');
+            }
+            
             throw error;
         }
     },

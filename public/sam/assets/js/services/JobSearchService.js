@@ -106,7 +106,7 @@ const JobSearchService = {
         const jobAnalysisSystemPrompt = systemPrompt + `
 
 [JOB-RANKING-MODUS]
-Hier sind ${foundJobs.jobs.length} Jobs zur Analyse:
+Hier sind ${Math.min(foundJobs.jobs.length, 5)} Jobs zur Analyse:
 
 ${foundJobs.jobs.slice(0, 5).map((job, i) => `Job ${i + 1}: ${job.title} bei ${job.company} in ${job.location}
 Beschreibung: ${job.description}
@@ -145,6 +145,27 @@ MEHRFACH-OUTPUT Erlaubt:
             
         } catch (error) {
             console.error('❌ Error in analyzeJobsWithSam:', error);
+            
+            // Fallback: Return a simplified job card for the best job if API fails
+            if (foundJobs.jobs && foundJobs.jobs.length > 0) {
+                console.log('🚨 API failed - creating fallback job card for best job');
+                const bestJob = foundJobs.jobs[0]; // Take first job as fallback
+                
+                const fallbackCard = `[JOB_CARD:{
+  "title": "${bestJob.title}",
+  "company": "${bestJob.company || 'Unbekannt'}", 
+  "location": "${bestJob.location || foundJobs.location}",
+  "salary": "${bestJob.salary || 'Nicht angegeben'}",
+  "description": "Diese Position könnte interessant für dich sein. Leider konnte ich aufgrund eines technischen Problems keine detaillierte Analyse durchführen. Bitte prüfe die Details selbst.",
+  "fitScore": 75,
+  "pros": ["Passende Position gefunden", "Entspricht deinen Suchkriterien"],
+  "cons": ["Technisches Problem bei der Analyse"],
+  "applyUrl": "${bestJob.url || '#'}"
+}]`;
+                
+                return fallbackCard;
+            }
+            
             throw error;
         }
     },

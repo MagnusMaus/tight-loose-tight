@@ -1,30 +1,37 @@
 // Job Search Service for intelligent job searching
 const JobSearchService = {
-    // Optimized job collection using single-word search terms
+    // UNIFIED INTELLIGENT SEARCH - 4-Phase Strategy
     searchJobsIntelligent: async (query, location, currentMessages, shownJobUrls = new Set(), userRadius = null) => {
-        console.log('🎯 Starting optimized single-word job collection');
-        console.log('📍 User specified radius:', userRadius || 'Not specified');
+        console.log('🎯 Starting UNIFIED INTELLIGENT SEARCH ENGINE');
+        console.log('📍 User specified radius:', userRadius || 'Default (25km)');
         
         try {
             const userRegion = location || AppConstants.JOB_SEARCH.DEFAULT_LOCATION;
+            const searchRadius = userRadius || 25; // Default to 25km
             
-            // Generate profession-specific single-word search terms
-            const userProfile = { messages: currentMessages };
-            const searchTerms = Helpers.generateSingleWordSearchTerms(userProfile);
+            // Create user profile for intelligent search
+            const userProfile = { 
+                messages: currentMessages,
+                query: query,
+                location: userRegion,
+                radius: searchRadius
+            };
             
-            // Collect 10-25 jobs using sequential single-word searches
-            const collectedJobs = await Helpers.collectJobsSequentially(searchTerms, userRegion, 10, 25);
+            // Execute the 4-phase intelligent search strategy
+            const searchResult = await Helpers.executeIntelligentJobSearch(userProfile, userRegion, searchRadius);
             
-            if (collectedJobs.length === 0) {
-                console.log('📭 No jobs found with any search terms');
+            if (!searchResult.success || searchResult.jobs.length === 0) {
+                console.log('📭 Unified search found no suitable jobs');
+                console.log('📊 Search Statistics:', JSON.stringify(searchResult.searchStats, null, 2));
                 return null;
             }
             
             // Filter out already shown jobs
-            console.log(`📋 Total jobs collected: ${collectedJobs.length}`);
+            console.log(`📋 Total jobs from unified search: ${searchResult.jobs.length}`);
             console.log(`🔍 Already shown jobs: ${shownJobUrls.size}`);
+            console.log(`📈 Search completed in phase: ${searchResult.phase}`);
             
-            const newJobs = collectedJobs.filter(job => {
+            const newJobs = searchResult.jobs.filter(job => {
                 const jobKey = job.url || `${job.title}_${job.company}`;
                 const isNew = !shownJobUrls.has(jobKey);
                 if (!isNew) {
@@ -36,19 +43,33 @@ const JobSearchService = {
             console.log(`✨ New jobs after filtering: ${newJobs.length}`);
             
             if (newJobs.length === 0) {
-                console.log('⚠️  All collected jobs were already shown');
+                console.log('⚠️  All unified search results were already shown');
                 return null;
             }
             
-            console.log(`🎉 SUCCESS! Collected ${newJobs.length} NEW jobs for analysis!`);
+            // Add search metadata to jobs
+            const enrichedJobs = newJobs.map(job => ({
+                ...job,
+                unifiedSearchPhase: searchResult.phase,
+                searchDuration: searchResult.duration
+            }));
+            
+            console.log('🎉 UNIFIED SEARCH SUCCESS!');
+            console.log(`📊 Final Statistics:`, searchResult.searchStats);
+            
             return {
-                jobs: newJobs,
-                query: `Sequential search with terms: ${searchTerms.join(', ')}`,
-                location: userRegion
+                jobs: enrichedJobs,
+                query: `Unified 4-phase search (completed in ${searchResult.phase})`,
+                location: userRegion,
+                searchMetadata: {
+                    phase: searchResult.phase,
+                    stats: searchResult.searchStats,
+                    duration: searchResult.duration
+                }
             };
             
         } catch (error) {
-            console.error('❌ CRITICAL ERROR in searchJobsIntelligent:', error);
+            console.error('❌ CRITICAL ERROR in Unified Search Engine:', error);
             throw error;
         }
     },

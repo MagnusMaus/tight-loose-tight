@@ -181,52 +181,489 @@ In welcher beruflichen Situation befindest du dich gerade?`;
         return coreTerms;
     },
 
-    // Sequential job collection with single-word terms (10-25 jobs target)
-    collectJobsSequentially: async (searchTerms, location, targetMin = 10, targetMax = 25) => {
-        console.log(`🎯 Collecting jobs sequentially, target: ${targetMin}-${targetMax} jobs`);
+    // UNIFIED INTELLIGENT SEARCH STRATEGY ENGINE
+    executeIntelligentJobSearch: async (userProfile, location, userRadius = 25) => {
+        console.log('🚀 Starting Unified Intelligent Search Strategy');
+        console.log('📋 User Profile Analysis:', { location, userRadius });
         
-        const allJobs = [];
-        const usedJobUrls = new Set();
+        const searchEngine = {
+            results: [],
+            usedJobUrls: new Set(),
+            searchStats: {
+                phase1: { queries: 0, jobs: 0, relevant: 0 },
+                phase2: { queries: 0, jobs: 0, relevant: 0 },
+                phase3: { queries: 0, jobs: 0, relevant: 0 },
+                phase4: { queries: 0, jobs: 0, relevant: 0 }
+            }
+        };
         
-        for (const term of searchTerms) {
-            if (allJobs.length >= targetMax) {
-                console.log(`✅ Reached target max (${targetMax} jobs) - stopping collection`);
-                break;
+        try {
+            // Phase 1: High-Precision Multi-Word Search
+            const phase1Result = await Helpers.executePhase1MultiWordSearch(userProfile, location, userRadius, searchEngine);
+            if (phase1Result.success) {
+                console.log('🎉 Phase 1 SUCCESS - High-precision search found sufficient jobs!');
+                return phase1Result;
             }
             
-            try {
-                console.log(`🔍 Searching for: "${term}"`);
-                const data = await ApiService.searchJobs(term, location, 50);
+            // Phase 2: Smart Single-Word with Term Prioritization  
+            const phase2Result = await Helpers.executePhase2SmartSingleWord(userProfile, location, userRadius, searchEngine);
+            if (phase2Result.success) {
+                console.log('🎉 Phase 2 SUCCESS - Smart single-word search found sufficient jobs!');
+                return phase2Result;
+            }
+            
+            // Phase 3: Geographic Expansion
+            const phase3Result = await Helpers.executePhase3GeographicExpansion(userProfile, location, userRadius, searchEngine);
+            if (phase3Result.success) {
+                console.log('🎉 Phase 3 SUCCESS - Geographic expansion found sufficient jobs!');
+                return phase3Result;
+            }
+            
+            // Phase 4: Fallback Diversification
+            const phase4Result = await Helpers.executePhase4FallbackDiversification(userProfile, location, searchEngine);
+            console.log('🏁 Phase 4 COMPLETE - Fallback search executed');
+            return phase4Result;
+            
+        } catch (error) {
+            console.error('❌ CRITICAL ERROR in Unified Search Strategy:', error);
+            return { 
+                success: false, 
+                jobs: [], 
+                error: error.message,
+                searchStats: searchEngine.searchStats 
+            };
+        }
+    },
+
+    // PHASE 1: High-Precision Multi-Word Search
+    executePhase1MultiWordSearch: async (userProfile, location, radius, searchEngine) => {
+        console.log('🎯 PHASE 1: High-Precision Multi-Word Search');
+        const startTime = Date.now();
+        
+        try {
+            // Generate high-precision 2-word combinations
+            const multiWordTerms = Helpers.generateMultiWordSearchTerms(userProfile);
+            console.log(`📝 Generated ${multiWordTerms.length} multi-word terms:`, multiWordTerms);
+            
+            const targetJobs = 15; // Target for quick high-quality results
+            let collectedJobs = 0;
+            
+            for (const term of multiWordTerms) {
+                if (collectedJobs >= targetJobs) break;
                 
-                if (data.jobs && data.jobs.length > 0) {
-                    // Filter duplicates and add new jobs
-                    const newJobs = data.jobs.filter(job => {
-                        const jobKey = job.url || `${job.title}_${job.company}`;
-                        if (usedJobUrls.has(jobKey)) return false;
-                        usedJobUrls.add(jobKey);
-                        return true;
-                    });
+                searchEngine.searchStats.phase1.queries++;
+                console.log(`🔍 P1 Query ${searchEngine.searchStats.phase1.queries}: "${term}" (${radius}km)`);
+                
+                try {
+                    const data = await ApiService.searchJobs(term, location, radius);
+                    const validJobs = await Helpers.validateAndAddJobs(data, searchEngine, 5, `P1-${term}`);
+                    collectedJobs += validJobs;
+                    searchEngine.searchStats.phase1.jobs += validJobs;
                     
-                    allJobs.push(...newJobs);
-                    console.log(`   ✨ Added ${newJobs.length} new jobs (total: ${allJobs.length})`);
-                    
-                    // Stop if we have enough jobs
-                    if (allJobs.length >= targetMin) {
-                        console.log(`✅ Reached target minimum (${targetMin} jobs) - sufficient collection`);
-                        break;
-                    }
-                } else {
-                    console.log(`   📭 No jobs found for "${term}"`);
+                } catch (error) {
+                    console.error(`❌ P1 Error for "${term}":`, error.message);
+                    continue;
                 }
-                
-            } catch (error) {
-                console.error(`❌ Error searching for "${term}":`, error);
-                continue; // Try next term
+            }
+            
+            const duration = Date.now() - startTime;
+            console.log(`⏱️ Phase 1 completed in ${duration}ms`);
+            console.log(`📊 P1 Results: ${searchEngine.searchStats.phase1.queries} queries, ${searchEngine.searchStats.phase1.jobs} jobs`);
+            
+            // Success if we have good initial results  
+            const success = searchEngine.results.length >= 10;
+            return {
+                success,
+                jobs: searchEngine.results,
+                phase: 'phase1',
+                searchStats: searchEngine.searchStats,
+                duration
+            };
+            
+        } catch (error) {
+            console.error('❌ Phase 1 Error:', error);
+            return { success: false, jobs: [], error: error.message, phase: 'phase1' };
+        }
+    },
+
+    // Generate smart multi-word search combinations
+    generateMultiWordSearchTerms: (userProfile) => {
+        console.log('🔧 Generating multi-word search terms');
+        
+        const userText = (userProfile.messages || []).map(m => m.content).join(' ').toLowerCase();
+        const multiWordTerms = [];
+        
+        // Agile/Scrum profile
+        if (userText.includes('agile') || userText.includes('scrum') || userText.includes('coach')) {
+            multiWordTerms.push('Agile Coach', 'Scrum Master', 'Change Management', 'Transformation Manager');
+        }
+        
+        // Lean/Operations profile  
+        if (userText.includes('lean') || userText.includes('operations') || userText.includes('prozess')) {
+            multiWordTerms.push('Lean Manager', 'Operations Excellence', 'Process Manager', 'Continuous Improvement');
+        }
+        
+        // Technical/Engineering profile
+        if (userText.includes('elektriker') || userText.includes('sps') || userText.includes('automatisierung')) {
+            multiWordTerms.push('SPS Programmierer', 'Automatisierungstechniker', 'Elektro Techniker', 'Steuerungs Technik');
+        }
+        
+        // IT/Software profile
+        if (userText.includes('entwickler') || userText.includes('programmier') || userText.includes('software')) {
+            multiWordTerms.push('Software Entwickler', 'Web Entwickler', 'Full Stack', 'Backend Entwickler');
+        }
+        
+        // Business/Management profile  
+        if (userText.includes('manager') || userText.includes('business') || userText.includes('strategie')) {
+            multiWordTerms.push('Business Development', 'Strategic Manager', 'Team Leader', 'Project Manager');
+        }
+        
+        // Fallback combinations if no specific profile
+        if (multiWordTerms.length === 0) {
+            multiWordTerms.push('Team Leader', 'Project Manager', 'Business Manager', 'Process Specialist');
+        }
+        
+        console.log(`📊 Generated ${multiWordTerms.length} multi-word terms:`, multiWordTerms);
+        return multiWordTerms.slice(0, 5); // Limit to top 5 for efficiency
+    },
+
+    // Validate and add jobs with deduplication
+    validateAndAddJobs: async (data, searchEngine, maxPerQuery, source) => {
+        if (!data.jobs || data.jobs.length === 0) {
+            console.log(`   📭 No jobs from ${source}`);
+            return 0;
+        }
+        
+        console.log(`   📋 Processing ${data.jobs.length} jobs from ${source}`);
+        let addedCount = 0;
+        
+        for (const job of data.jobs.slice(0, maxPerQuery)) {
+            const jobKey = job.url || `${job.title}_${job.company}`;
+            
+            if (!searchEngine.usedJobUrls.has(jobKey)) {
+                searchEngine.usedJobUrls.add(jobKey);
+                searchEngine.results.push({
+                    ...job,
+                    searchSource: source,
+                    addedAt: new Date().toISOString()
+                });
+                addedCount++;
             }
         }
         
-        console.log(`🏆 Job collection complete: ${allJobs.length} jobs collected`);
-        return allJobs.slice(0, targetMax); // Limit to max
+        console.log(`   ✨ Added ${addedCount} new unique jobs from ${source}`);
+        return addedCount;
+    },
+
+    // PHASE 2: Smart Single-Word with Term Prioritization
+    executePhase2SmartSingleWord: async (userProfile, location, radius, searchEngine) => {
+        console.log('🎯 PHASE 2: Smart Single-Word with Term Prioritization');
+        const startTime = Date.now();
+        
+        try {
+            // Generate prioritized single-word terms (avoid generics like "Manager")
+            const prioritizedTerms = Helpers.generatePrioritizedSingleWordTerms(userProfile);
+            console.log(`📝 Generated ${prioritizedTerms.length} prioritized terms:`, prioritizedTerms);
+            
+            const targetAdditionalJobs = 20; // Add to existing results
+            let collectedJobs = 0;
+            
+            for (const termObj of prioritizedTerms) {
+                if (collectedJobs >= targetAdditionalJobs) break;
+                
+                searchEngine.searchStats.phase2.queries++;
+                console.log(`🔍 P2 Query ${searchEngine.searchStats.phase2.queries}: "${termObj.term}" [Priority: ${termObj.priority}/10] (${radius}km)`);
+                
+                try {
+                    const data = await ApiService.searchJobs(termObj.term, location, radius);
+                    const validJobs = await Helpers.validateAndAddJobs(data, searchEngine, 7, `P2-${termObj.term}`);
+                    collectedJobs += validJobs;
+                    searchEngine.searchStats.phase2.jobs += validJobs;
+                    
+                } catch (error) {
+                    console.error(`❌ P2 Error for "${termObj.term}":`, error.message);
+                    continue;
+                }
+            }
+            
+            const duration = Date.now() - startTime;
+            console.log(`⏱️ Phase 2 completed in ${duration}ms`);
+            console.log(`📊 P2 Results: ${searchEngine.searchStats.phase2.queries} queries, ${searchEngine.searchStats.phase2.jobs} jobs`);
+            
+            // Success if we now have sufficient total results
+            const success = searchEngine.results.length >= 15;
+            return {
+                success,
+                jobs: searchEngine.results,
+                phase: 'phase2',
+                searchStats: searchEngine.searchStats,
+                duration
+            };
+            
+        } catch (error) {
+            console.error('❌ Phase 2 Error:', error);
+            return { success: false, jobs: [], error: error.message, phase: 'phase2' };
+        }
+    },
+
+    // Generate prioritized single-word terms with quality scoring
+    generatePrioritizedSingleWordTerms: (userProfile) => {
+        console.log('🔧 Generating prioritized single-word terms');
+        
+        const userText = (userProfile.messages || []).map(m => m.content).join(' ').toLowerCase();
+        const terms = [];
+        
+        // Agile/Scrum profile - HIGH PRIORITY
+        if (userText.includes('agile') || userText.includes('scrum') || userText.includes('coach')) {
+            terms.push(
+                { term: 'Agile', priority: 9 },
+                { term: 'Scrum', priority: 9 },
+                { term: 'Change', priority: 8 },
+                { term: 'Coach', priority: 7 },
+                { term: 'Transformation', priority: 6 }
+            );
+        }
+        
+        // Lean/Operations profile - HIGH PRIORITY  
+        if (userText.includes('lean') || userText.includes('operations') || userText.includes('prozess')) {
+            terms.push(
+                { term: 'Lean', priority: 9 },
+                { term: 'Operations', priority: 8 },
+                { term: 'Prozess', priority: 7 },
+                { term: 'Optimierung', priority: 6 },
+                { term: 'Excellence', priority: 5 }
+            );
+        }
+        
+        // Technical/Engineering profile - HIGH PRIORITY
+        if (userText.includes('elektriker') || userText.includes('sps') || userText.includes('automatisierung')) {
+            terms.push(
+                { term: 'SPS', priority: 10 },
+                { term: 'Automatisierung', priority: 9 },
+                { term: 'Elektriker', priority: 8 },
+                { term: 'Steuerung', priority: 7 },
+                { term: 'Technik', priority: 6 }
+            );
+        }
+        
+        // IT/Software profile - HIGH PRIORITY
+        if (userText.includes('entwickler') || userText.includes('programmier') || userText.includes('software')) {
+            terms.push(
+                { term: 'Entwickler', priority: 9 },
+                { term: 'Software', priority: 8 },
+                { term: 'Frontend', priority: 7 },
+                { term: 'Backend', priority: 7 },
+                { term: 'Java', priority: 6 }
+            );
+        }
+        
+        // Business terms - LOWER PRIORITY (avoid generic "Manager")
+        if (userText.includes('business') || userText.includes('strategie')) {
+            terms.push(
+                { term: 'Business', priority: 5 },
+                { term: 'Strategie', priority: 5 },
+                { term: 'Consultant', priority: 4 }
+                // Notably EXCLUDING "Manager" (too generic)
+            );
+        }
+        
+        // Remove duplicates and sort by priority
+        const uniqueTerms = terms.reduce((acc, current) => {
+            const existing = acc.find(item => item.term === current.term);
+            if (!existing || current.priority > existing.priority) {
+                return acc.filter(item => item.term !== current.term).concat([current]);
+            }
+            return acc;
+        }, []);
+        
+        const sortedTerms = uniqueTerms
+            .sort((a, b) => b.priority - a.priority)
+            .slice(0, 6); // Top 6 terms only
+        
+        console.log(`📊 Prioritized terms:`, sortedTerms.map(t => `${t.term}(${t.priority})`));
+        return sortedTerms;
+    },
+
+    // PHASE 3: Geographic Expansion
+    executePhase3GeographicExpansion: async (userProfile, originalLocation, originalRadius, searchEngine) => {
+        console.log('🎯 PHASE 3: Geographic Expansion');
+        const startTime = Date.now();
+        
+        try {
+            // Expand search radius progressively
+            const expansionRadii = [
+                originalRadius * 2, // Double original radius
+                originalRadius * 3, // Triple original radius  
+                200 // Nationwide fallback
+            ];
+            
+            // Get best performing search terms from previous phases
+            const bestTerms = Helpers.getBestPerformingTerms(userProfile, searchEngine);
+            console.log(`📝 Re-running best terms with expanded radius:`, bestTerms);
+            
+            for (const expandedRadius of expansionRadii) {
+                if (searchEngine.results.length >= 20) break; // Sufficient results
+                
+                console.log(`🌍 Expanding search radius to ${expandedRadius}km`);
+                
+                for (const term of bestTerms) {
+                    if (searchEngine.results.length >= 25) break; // Max results
+                    
+                    searchEngine.searchStats.phase3.queries++;
+                    console.log(`🔍 P3 Query ${searchEngine.searchStats.phase3.queries}: "${term}" (${expandedRadius}km)`);
+                    
+                    try {
+                        const data = await ApiService.searchJobs(term, originalLocation, expandedRadius);
+                        const validJobs = await Helpers.validateAndAddJobs(data, searchEngine, 5, `P3-${term}-${expandedRadius}km`);
+                        searchEngine.searchStats.phase3.jobs += validJobs;
+                        
+                    } catch (error) {
+                        console.error(`❌ P3 Error for "${term}" at ${expandedRadius}km:`, error.message);
+                        continue;
+                    }
+                }
+                
+                // Check if we now have sufficient results
+                if (searchEngine.results.length >= 15) {
+                    console.log(`✅ Geographic expansion successful at ${expandedRadius}km radius`);
+                    break;
+                }
+            }
+            
+            const duration = Date.now() - startTime;
+            console.log(`⏱️ Phase 3 completed in ${duration}ms`);
+            console.log(`📊 P3 Results: ${searchEngine.searchStats.phase3.queries} queries, ${searchEngine.searchStats.phase3.jobs} jobs`);
+            
+            const success = searchEngine.results.length >= 12; // Lower threshold for expanded search
+            return {
+                success,
+                jobs: searchEngine.results,
+                phase: 'phase3',
+                searchStats: searchEngine.searchStats,
+                duration
+            };
+            
+        } catch (error) {
+            console.error('❌ Phase 3 Error:', error);
+            return { success: false, jobs: [], error: error.message, phase: 'phase3' };
+        }
+    },
+
+    // Get best performing terms from previous search phases
+    getBestPerformingTerms: (userProfile, searchEngine) => {
+        // For now, return the most specific terms from user profile
+        // In future, could track which terms actually returned relevant jobs
+        const userText = (userProfile.messages || []).map(m => m.content).join(' ').toLowerCase();
+        
+        if (userText.includes('agile') || userText.includes('coach')) {
+            return ['Agile Coach', 'Agile', 'Change'];
+        } else if (userText.includes('lean') || userText.includes('operations')) {
+            return ['Lean Manager', 'Lean', 'Operations'];
+        } else if (userText.includes('elektriker') || userText.includes('sps')) {
+            return ['SPS Programmierer', 'SPS', 'Automatisierung'];
+        } else if (userText.includes('entwickler') || userText.includes('software')) {
+            return ['Software Entwickler', 'Entwickler', 'Software'];
+        } else {
+            return ['Team Leader', 'Specialist', 'Coordinator'];
+        }
+    },
+
+    // PHASE 4: Fallback Diversification
+    executePhase4FallbackDiversification: async (userProfile, originalLocation, searchEngine) => {
+        console.log('🎯 PHASE 4: Fallback Diversification (Last Resort)');
+        const startTime = Date.now();
+        
+        try {
+            // Try major job centers if original location didn't yield enough results
+            const majorCities = ['Berlin', 'München', 'Hamburg', 'Frankfurt', 'Köln'];
+            const fallbackTerms = Helpers.getFallbackTerms(userProfile);
+            
+            console.log(`📝 Fallback terms:`, fallbackTerms);
+            console.log(`🏙️ Will try major cities if needed:`, majorCities);
+            
+            // First try broader terms in original location
+            for (const term of fallbackTerms) {
+                if (searchEngine.results.length >= 20) break;
+                
+                searchEngine.searchStats.phase4.queries++;
+                console.log(`🔍 P4 Query ${searchEngine.searchStats.phase4.queries}: "${term}" in ${originalLocation} (100km)`);
+                
+                try {
+                    const data = await ApiService.searchJobs(term, originalLocation, 100);
+                    const validJobs = await Helpers.validateAndAddJobs(data, searchEngine, 3, `P4-${term}`);
+                    searchEngine.searchStats.phase4.jobs += validJobs;
+                    
+                } catch (error) {
+                    console.error(`❌ P4 Error for "${term}":`, error.message);
+                    continue;
+                }
+            }
+            
+            // If still insufficient, try major cities (only if user allows)
+            if (searchEngine.results.length < 10) {
+                console.log('📢 Trying major job centers as last resort');
+                
+                for (const city of majorCities.slice(0, 2)) { // Only try top 2 cities
+                    if (searchEngine.results.length >= 15) break;
+                    
+                    for (const term of fallbackTerms.slice(0, 2)) { // Only best fallback terms
+                        searchEngine.searchStats.phase4.queries++;
+                        console.log(`🔍 P4 Query ${searchEngine.searchStats.phase4.queries}: "${term}" in ${city}`);
+                        
+                        try {
+                            const data = await ApiService.searchJobs(term, city, 50);
+                            const validJobs = await Helpers.validateAndAddJobs(data, searchEngine, 2, `P4-${term}-${city}`);
+                            searchEngine.searchStats.phase4.jobs += validJobs;
+                            
+                        } catch (error) {
+                            console.error(`❌ P4 Error for "${term}" in ${city}:`, error.message);
+                            continue;
+                        }
+                    }
+                }
+            }
+            
+            const duration = Date.now() - startTime;
+            console.log(`⏱️ Phase 4 completed in ${duration}ms`);
+            console.log(`📊 P4 Results: ${searchEngine.searchStats.phase4.queries} queries, ${searchEngine.searchStats.phase4.jobs} jobs`);
+            
+            // Phase 4 always "succeeds" - it's the final attempt
+            return {
+                success: searchEngine.results.length > 0,
+                jobs: searchEngine.results,
+                phase: 'phase4',
+                searchStats: searchEngine.searchStats,
+                duration,
+                note: searchEngine.results.length > 0 ? 'Fallback search found some results' : 'No suitable jobs found in any search phase'
+            };
+            
+        } catch (error) {
+            console.error('❌ Phase 4 Error:', error);
+            return { 
+                success: false, 
+                jobs: searchEngine.results, // Return whatever we have
+                error: error.message, 
+                phase: 'phase4' 
+            };
+        }
+    },
+
+    // Get fallback terms for difficult cases
+    getFallbackTerms: (userProfile) => {
+        const userText = (userProfile.messages || []).map(m => m.content).join(' ').toLowerCase();
+        
+        // Industry-adjacent terms that are broader but still relevant
+        if (userText.includes('agile') || userText.includes('coach')) {
+            return ['Consultant', 'Trainer', 'Berater', 'Koordinator'];
+        } else if (userText.includes('lean') || userText.includes('operations')) {
+            return ['Prozess', 'Qualität', 'Verbesserung', 'Koordinator'];
+        } else if (userText.includes('elektriker') || userText.includes('sps')) {
+            return ['Techniker', 'Wartung', 'Instandhaltung', 'Elektro'];
+        } else if (userText.includes('entwickler') || userText.includes('software')) {
+            return ['Informatiker', 'Analyst', 'Spezialist', 'Administrator'];
+        } else {
+            return ['Spezialist', 'Koordinator', 'Sachbearbeiter', 'Assistent'];
+        }
     },
 
     // Generate location tiers for job search

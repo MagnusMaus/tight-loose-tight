@@ -671,6 +671,7 @@ Oder soll ich mit alternativen Suchbegriffenverstärkt in deinem ${userRadius}km
                             return altJobs.jobs;
                         }
                     }
+                }
                 } catch (error) {
                     console.error(`❌ Error with alternative "${altQuery}":`, error);
                     continue; // Try next alternative

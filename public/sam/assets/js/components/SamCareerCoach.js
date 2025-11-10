@@ -617,7 +617,9 @@ Oder soll ich mit alternativen Suchbegriffenverstärkt in deinem ${userRadius}km
             for (const altQuery of professionAlternatives.slice(0, maxAlternatives)) {
                 alternativeCount++;
                 console.log(`🔄 Trying profession-specific alternative ${alternativeCount}/${maxAlternatives}: ${altQuery}`);
-                const altJobs = await JobSearchService.searchJobsIntelligent(
+                
+                try {
+                    const altJobs = await JobSearchService.searchJobsIntelligent(
                     altQuery, 
                     location, 
                     currentMessages, 

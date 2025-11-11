@@ -387,8 +387,10 @@ JOBEMPFEHLUNGEN (nach Profilvollständigung):
                 console.log('📍 Extracted user radius:', userRadius);
                 console.log('🏠 Extracted user location:', userLocation);
                 
-                // Use extracted location if available, otherwise fallback to search params or default
-                const searchLocation = userLocation || searchParams.location || 'Hannover';
+                // Use Claude's requested location first, then user location, then default
+                // Claude specifically chooses locations for strategic reasons (major business centers)
+                const searchLocation = searchParams.location || userLocation || 'Hannover';
+                console.log(`🎯 Search location decision: Claude requested "${searchParams.location}", user location "${userLocation}", final choice: "${searchLocation}"`);
                 
                 // Start job search with user location and radius
                 await searchJobs(searchParams.query, searchLocation, updatedMessages, userRadius);

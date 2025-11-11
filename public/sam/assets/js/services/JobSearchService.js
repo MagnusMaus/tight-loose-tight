@@ -17,6 +17,9 @@ const JobSearchService = {
                 radius: searchRadius
             };
             
+            // Add Claude's specific search intent to profile for more targeted search
+            console.log(`🎯 Claude's specific search query: "${query}"`);
+            
             // Execute the 4-phase intelligent search strategy
             const searchResult = await Helpers.executeIntelligentJobSearch(userProfile, userRegion, searchRadius);
             
@@ -109,10 +112,12 @@ MEHRFACH-OUTPUT Erlaubt:
 - Keine zusätzlichen Texte zwischen den Karten`;
         
         // User message WITH job data (Claude expects job data in user message, not system prompt)
-        const userPrompt = `Analysiere diese ${Math.min(foundJobs.jobs.length, 5)} Jobs für mein Profil und erstelle Job Cards für alle passenden Stellen:
+        // Optimize: Send only top 3 jobs to reduce token usage while maintaining quality
+        const topJobs = foundJobs.jobs.slice(0, 3);
+        const userPrompt = `Analysiere diese ${topJobs.length} Jobs für mein Profil und erstelle Job Cards für alle passenden Stellen:
 
-${foundJobs.jobs.slice(0, 5).map((job, i) => `Job ${i + 1}: ${job.title || 'Kein Titel'} bei ${job.company || job.employer || 'Unbekanntes Unternehmen'} in ${job.location || job.workingPlace || 'Unbekannter Ort'}
-Beschreibung: ${job.description || job.htmlContent || job.content || 'Keine Beschreibung verfügbar'}
+${topJobs.map((job, i) => `Job ${i + 1}: ${job.title || 'Kein Titel'} bei ${job.company || job.employer || 'Unbekanntes Unternehmen'} in ${job.location || job.workingPlace || 'Unbekannter Ort'}
+Beschreibung: ${(job.description || job.htmlContent || job.content || 'Keine Beschreibung verfügbar').substring(0, 150)}...
 URL: ${job.url || job.externalUrl || '#'}`).join('\n\n')}
 
 Erstelle jetzt Job Cards für alle passenden Positionen (75%+ Fit-Score).`;

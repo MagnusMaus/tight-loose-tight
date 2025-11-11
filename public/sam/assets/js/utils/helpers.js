@@ -198,6 +198,17 @@ In welcher beruflichen Situation befindest du dich gerade?`;
         };
         
         try {
+            // PHASE 0: Claude's Specific Query (if different from profile-based)
+            const claudeQuery = userProfile.query;
+            if (claudeQuery && claudeQuery !== 'undefined') {
+                console.log(`🎯 PHASE 0: Claude's Targeted Search for "${claudeQuery}"`);
+                const targetedResult = await Helpers.executeTargetedSearch(claudeQuery, location, userRadius, searchEngine);
+                if (targetedResult.success) {
+                    console.log('🎉 Phase 0 SUCCESS - Claude\'s targeted search found sufficient jobs!');
+                    return targetedResult;
+                }
+            }
+            
             // Phase 1: High-Precision Multi-Word Search
             const phase1Result = await Helpers.executePhase1MultiWordSearch(userProfile, location, userRadius, searchEngine);
             if (phase1Result.success) {
@@ -232,6 +243,59 @@ In welcher beruflichen Situation befindest du dich gerade?`;
                 error: error.message,
                 searchStats: searchEngine.searchStats 
             };
+        }
+    },
+
+    // PHASE 0: Claude's Targeted Search (respects Claude's specific query)
+    executeTargetedSearch: async (claudeQuery, location, radius, searchEngine) => {
+        console.log('🎯 PHASE 0: Claude\'s Targeted Search');
+        console.log(`🔍 Searching specifically for: "${claudeQuery}"`);
+        const startTime = Date.now();
+        
+        try {
+            // Search directly for Claude's query and related variations
+            const searchTerms = [
+                claudeQuery, // Direct search
+                `${claudeQuery} Manager`, // Manager variation
+                `${claudeQuery} Director`, // Director variation
+                `${claudeQuery} Leader`, // Leader variation
+            ];
+            
+            const targetJobs = 15;
+            let collectedJobs = 0;
+            
+            for (const term of searchTerms) {
+                if (collectedJobs >= targetJobs) break;
+                
+                console.log(`🔍 Phase 0 Query: "${term}" in ${location} (${radius}km)`);
+                
+                try {
+                    const data = await ApiService.searchJobs(term, location, radius);
+                    const validJobs = await Helpers.validateAndAddJobs(data, searchEngine, 10, `P0-${term}`);
+                    collectedJobs += validJobs;
+                    
+                } catch (error) {
+                    console.error(`❌ Phase 0 Error for "${term}":`, error.message);
+                    continue;
+                }
+            }
+            
+            const duration = Date.now() - startTime;
+            console.log(`⏱️ Phase 0 completed in ${duration}ms`);
+            console.log(`📊 Phase 0 Results: ${searchTerms.length} queries, ${collectedJobs} jobs`);
+            
+            const success = searchEngine.results.length >= 8; // Lower threshold for targeted search
+            return {
+                success,
+                jobs: searchEngine.results,
+                phase: 'phase0-targeted',
+                searchStats: { phase0: { queries: searchTerms.length, jobs: collectedJobs } },
+                duration
+            };
+            
+        } catch (error) {
+            console.error('❌ Phase 0 Error:', error);
+            return { success: false, jobs: [], error: error.message, phase: 'phase0-targeted' };
         }
     },
 

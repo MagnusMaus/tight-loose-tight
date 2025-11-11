@@ -84,18 +84,18 @@ const JobSearchService = {
         console.log(`   Location: "${foundJobs.location}"`);
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         
-        // Debug: Log actual job structure
+        // Debug: Log actual job structure and data transmission
         console.log('🔍 DEBUG: First job object structure:', JSON.stringify(foundJobs.jobs[0], null, 2));
+        console.log('📤 DEBUG: About to send to Claude:', {
+            jobCount: foundJobs.jobs.length,
+            firstJobTitle: foundJobs.jobs[0]?.title,
+            hasDescription: !!foundJobs.jobs[0]?.description
+        });
         
-        // Create job analysis prompt as system context
+        // System prompt with ranking instructions
         const jobAnalysisSystemPrompt = systemPrompt + `
 
-[JOB-RANKING-MODUS]
-Hier sind ${Math.min(foundJobs.jobs.length, 5)} Jobs zur Analyse:
-
-${foundJobs.jobs.slice(0, 5).map((job, i) => `Job ${i + 1}: ${job.title || 'Kein Titel'} bei ${job.company || job.employer || 'Unbekanntes Unternehmen'} in ${job.location || job.workingPlace || 'Unbekannter Ort'}
-Beschreibung: ${job.description || job.htmlContent || job.content || 'Keine Beschreibung verfügbar'}
-URL: ${job.url || job.externalUrl || '#'}`).join('\n\n')}
+[JOB-RANKING-MODUS AKTIVIERT]
 
 AUFGABE:
 1. Bewerte ALLE Jobs (50% psychografisch, 30% fachlich, 20% Umfeld)
@@ -108,8 +108,18 @@ MEHRFACH-OUTPUT Erlaubt:
 - Jede JOB_CARD separat mit [JOB_CARD:{...}]
 - Keine zusätzlichen Texte zwischen den Karten`;
         
-        // Simple user message to trigger analysis
-        const userPrompt = `Analysiere diese ${foundJobs.jobs.length} Jobs für mein Profil und erstelle Job Cards für alle passenden Stellen.`;
+        // User message WITH job data (Claude expects job data in user message, not system prompt)
+        const userPrompt = `Analysiere diese ${Math.min(foundJobs.jobs.length, 5)} Jobs für mein Profil und erstelle Job Cards für alle passenden Stellen:
+
+${foundJobs.jobs.slice(0, 5).map((job, i) => `Job ${i + 1}: ${job.title || 'Kein Titel'} bei ${job.company || job.employer || 'Unbekanntes Unternehmen'} in ${job.location || job.workingPlace || 'Unbekannter Ort'}
+Beschreibung: ${job.description || job.htmlContent || job.content || 'Keine Beschreibung verfügbar'}
+URL: ${job.url || job.externalUrl || '#'}`).join('\n\n')}
+
+Erstelle jetzt Job Cards für alle passenden Positionen (75%+ Fit-Score).`;
+        
+        // Debug: Verify user prompt contains job data  
+        console.log('📝 DEBUG: User prompt length:', userPrompt.length);
+        console.log('📝 DEBUG: User prompt preview:', userPrompt.substring(0, 200) + '...');
         
         const updatedMessages = [...currentMessages, {
             role: 'user',
